@@ -1,0 +1,8 @@
+node_modules/
+# Per-run artifacts are disposable and stay out of git.
+results/
+*.log
+
+# NOTE: the durable comparison store IS committed — do not ignore these:
+#   registry.jsonl   (append-only run summaries)
+#   baselines/       (cached baseline records, baselines/<id>.jsonl)

@@ -1,0 +1,319 @@
+{
+  "_note": "Current-surface snapshot of the Home Assistant MCP Hass* tool catalog, frozen to today's live catalog (v6). Deliberately EXCLUDES garage/cover, climate/thermostat, and camera tools — those ship in v7 and must not appear here. Update this fixture (and re-run the caller-contract test) only when the live catalog actually changes.",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "HassTurnOn",
+        "description": "Turns on/opens/presses a device or entity. For locks, this performs a 'lock' action. Use for requests like 'turn on', 'activate', 'enable', or 'unlock'.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Name of the entity or device." },
+            "area": { "type": "string", "description": "Area to target." },
+            "floor": { "type": "string", "description": "Floor to target." },
+            "domain": { "type": "array", "items": { "type": "string" }, "description": "Domains to target." }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassTurnOff",
+        "description": "Turns off/closes a device or entity. For locks, this performs an 'unlock' action. Use for requests like 'turn off', 'deactivate', 'disable', or 'lock'.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Name of the entity or device." },
+            "area": { "type": "string", "description": "Area to target." },
+            "floor": { "type": "string", "description": "Floor to target." },
+            "domain": { "type": "array", "items": { "type": "string" }, "description": "Domains to target." }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassLightSet",
+        "description": "Sets the brightness percentage or color of a light.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Name of the light entity." },
+            "area": { "type": "string", "description": "Area to target." },
+            "floor": { "type": "string", "description": "Floor to target." },
+            "brightness": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Brightness percentage, 0-100." },
+            "color": { "type": "string", "description": "Color name or value." },
+            "temperature": { "type": "integer", "description": "Color temperature." }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassListAddItem",
+        "description": "Add item to a todo list.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "item": { "type": "string", "description": "The item text to add." },
+            "name": { "type": "string", "description": "The name of the todo list." }
+          },
+          "required": ["item"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassListCompleteItem",
+        "description": "Complete item on a todo list.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "item": { "type": "string", "description": "The item text to complete." },
+            "name": { "type": "string", "description": "The name of the todo list." }
+          },
+          "required": ["item"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassListRemoveItem",
+        "description": "Remove one or more items from a todo list.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "item": { "type": "string", "description": "The item text to remove." },
+            "name": { "type": "string", "description": "The name of the todo list." }
+          },
+          "required": ["item"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassCancelAllTimers",
+        "description": "Cancels all timers.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "area": { "type": "string", "description": "Area to target." }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassMediaPause",
+        "description": "Pauses a media player.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Name of the media player." },
+            "area": { "type": "string", "description": "Area to target." },
+            "floor": { "type": "string", "description": "Floor to target." },
+            "domain": { "type": "array", "items": { "type": "string" }, "description": "Domains to target." },
+            "device_class": { "type": "array", "items": { "type": "string" }, "description": "Device classes to target, e.g. tv, speaker, receiver." }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassMediaUnpause",
+        "description": "Resumes a media player.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Name of the media player." },
+            "area": { "type": "string", "description": "Area to target." },
+            "floor": { "type": "string", "description": "Floor to target." },
+            "domain": { "type": "array", "items": { "type": "string" }, "description": "Domains to target." },
+            "device_class": { "type": "array", "items": { "type": "string" }, "description": "Device classes to target, e.g. tv, speaker, receiver." }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassMediaNext",
+        "description": "Skips a media player to the next item.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Name of the media player." },
+            "area": { "type": "string", "description": "Area to target." },
+            "floor": { "type": "string", "description": "Floor to target." },
+            "domain": { "type": "array", "items": { "type": "string" }, "description": "Domains to target." },
+            "device_class": { "type": "array", "items": { "type": "string" }, "description": "Device classes to target, e.g. tv, speaker, receiver." }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassMediaPrevious",
+        "description": "Replays the previous item for a media player.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Name of the media player." },
+            "area": { "type": "string", "description": "Area to target." },
+            "floor": { "type": "string", "description": "Floor to target." },
+            "domain": { "type": "array", "items": { "type": "string" }, "description": "Domains to target." },
+            "device_class": { "type": "array", "items": { "type": "string" }, "description": "Device classes to target, e.g. tv, speaker, receiver." }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassMediaPlayerMute",
+        "description": "Mutes a media player.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Name of the media player." },
+            "area": { "type": "string", "description": "Area to target." },
+            "floor": { "type": "string", "description": "Floor to target." },
+            "domain": { "type": "array", "items": { "type": "string" }, "description": "Domains to target." },
+            "device_class": { "type": "array", "items": { "type": "string" }, "description": "Device classes to target, e.g. tv, speaker, receiver." },
+            "is_volume_muted": { "type": "string", "description": "Whether the media player should be muted." }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassMediaPlayerUnmute",
+        "description": "Unmutes a media player.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Name of the media player." },
+            "area": { "type": "string", "description": "Area to target." },
+            "floor": { "type": "string", "description": "Floor to target." },
+            "domain": { "type": "array", "items": { "type": "string" }, "description": "Domains to target." },
+            "device_class": { "type": "array", "items": { "type": "string" }, "description": "Device classes to target, e.g. tv, speaker, receiver." },
+            "is_volume_muted": { "type": "string", "description": "Whether the media player should be unmuted." }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassSetVolume",
+        "description": "Sets the volume percentage of a media player.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Name of the media player." },
+            "area": { "type": "string", "description": "Area to target." },
+            "floor": { "type": "string", "description": "Floor to target." },
+            "domain": { "type": "array", "items": { "type": "string" }, "description": "Domains to target." },
+            "device_class": { "type": "array", "items": { "type": "string" }, "description": "Device classes to target, e.g. tv, speaker, receiver." },
+            "volume_level": { "type": "integer", "minimum": 0, "maximum": 100, "description": "The volume percentage of the media player." }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassSetVolumeRelative",
+        "description": "Increases or decreases the volume of a media player.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Name of the media player." },
+            "area": { "type": "string", "description": "Area to target." },
+            "floor": { "type": "string", "description": "Floor to target." },
+            "volume_step": { "type": ["string", "integer"], "description": "'up', 'down', or a relative percentage between -100 and 100." }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassMediaSearchAndPlay",
+        "description": "Searches for media and plays the first result.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "Name of the media player." },
+            "area": { "type": "string", "description": "Area to target." },
+            "floor": { "type": "string", "description": "Floor to target." },
+            "search_query": { "type": "string", "description": "The media to search for." },
+            "media_class": { "type": "string", "enum": ["album", "app", "artist", "channel", "composer", "contributing_artist", "directory", "episode", "game", "genre", "image", "movie", "music", "playlist", "podcast", "season", "track", "tv_show", "url", "video"], "description": "The class of media to search for." }
+          },
+          "required": ["search_query"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "HassBroadcast",
+        "description": "Broadcast a message through the home.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "message": { "type": "string", "description": "The message to broadcast." }
+          },
+          "required": ["message"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "GetLiveContext",
+        "description": "Provides real-time information about the current state, value, or mode of devices, sensors, entities, or areas.",
+        "parameters": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "GetDateTime",
+        "description": "Provides the current date and time.",
+        "parameters": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "todo_get_items",
+        "description": "Query a to-do list to find out what items are on it. Filters items by status (needs_action, completed, all).",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["needs_action", "completed", "all"], "description": "Filter returned items by status." },
+            "todo_list": { "type": "string", "enum": ["Shopping List"], "description": "The todo list to query." }
+          }
+        }
+      }
+    }
+  ]
+}

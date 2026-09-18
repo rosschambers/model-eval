@@ -9,6 +9,8 @@ import type { MockMap } from './mock-engine.js';
 import type { BenchCase } from './case.js';
 import { hugoProfile } from './profiles/hugo.js';
 import { murmur8Profile } from './profiles/murmur8.js';
+import { homeProfile } from './profiles/home.js';
+import { voiceProfile } from './profiles/voice.js';
 
 export interface ReplyConstraints {
   maxChars: number | null;
@@ -26,7 +28,12 @@ export interface AgentProfile {
   cases: BenchCase[];
 }
 
-export const PROFILES: Record<string, AgentProfile> = { hugo: hugoProfile, murmur8: murmur8Profile };
+export const PROFILES: Record<string, AgentProfile> = {
+  hugo: hugoProfile,
+  murmur8: murmur8Profile,
+  home: homeProfile,
+  voice: voiceProfile,
+};
 
 /**
  * Resolve a profile selection. With no ids, returns every registered profile.

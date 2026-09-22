@@ -60,10 +60,32 @@ export const MODELS: ModelConfig[] = [
   },
   {
     id: 'crucible-9b',
-    label: 'crucible tuned 9B v3.1 (frame:8089)',
-    baseURL: 'http://frame:8089/v1',
+    label: 'crucible tuned 9B v3.1 (frame:8289)',
+    baseURL: 'http://frame:8289/v1',
     apiKeyEnv: 'FRAME_API_KEY',
     model: 'crucible-9b-v31-q5_k_m.gguf',
+    kind: 'local',
+  },
+  {
+    // crucible v6 candidate: Nanbeige4.2-3B (looped-transformer, trust_remote_code base) QLoRA
+    // on corpus-v6. Serve with the PERMISSIVE Nanbeige chat template (renders trailing
+    // <screen-context> system turns inline) and reasoning off. Port 8090 by convention.
+    id: 'nanbeige-v6',
+    label: 'crucible v6 Nanbeige-3B (frame:8090)',
+    baseURL: 'http://frame:8090/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'nanbeige-v6-q5_k_m.gguf',
+    kind: 'local',
+  },
+  {
+    // crucible v6 candidate: Ling-3.0-tiny (bailingmoe3, 7.9B-total/1.3B-active hybrid-KDA MoE)
+    // QLoRA on corpus-v6. Non-ChatML <role> template + XML tool-call format — needs the Ling
+    // template/parser adapter. Serve reasoning off. Port 8091 by convention.
+    id: 'ling-v6',
+    label: 'crucible v6 Ling-3.0-tiny (frame:8091)',
+    baseURL: 'http://frame:8091/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'ling-v6-q5_k_m.gguf',
     kind: 'local',
   },
 ];

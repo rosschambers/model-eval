@@ -88,6 +88,47 @@ export const MODELS: ModelConfig[] = [
     model: 'ling-v6-q5_k_m.gguf',
     kind: 'local',
   },
+  {
+    // crucible v6 ANCHOR: dense Qwen3.5-9B on corpus-v6 — same base/arch/size as production v3.1,
+    // only the corpus differs. THE apples-to-apples test of the v6 corpus. Serve with the
+    // permissive template + reasoning off. Port 8090 (reuses the retired nanbeige-v6 slot).
+    id: 'crucible-9b-v6',
+    label: 'crucible v6 anchor Qwen3.5-9B (frame:8090)',
+    baseURL: 'http://frame:8090/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'crucible-9b-v6-q5_k_m.gguf',
+    kind: 'local',
+  },
+  {
+    // crucible v6.1: the anchor RETRAINED on corpus-v6.2 (v6.1 + 16 murmur8 correction golds
+    // teaching mark-done->update-in-place + act-on-active-item, to recover the murmur8 regression
+    // v6 had vs v3.1 while keeping the hugo gain). Serve on 8090 like the anchor.
+    id: 'crucible-9b-v61',
+    label: 'crucible v6.1 Qwen3.5-9B corpus-v6.2 (frame:8090)',
+    baseURL: 'http://frame:8090/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'crucible-9b-v61-q5_k_m.gguf',
+    kind: 'local',
+  },
+  {
+    // crucible v6 candidate: Ornith-1.5-9B (dense qwen35, MIT). Same recipe/serve as the anchor.
+    id: 'ornith-v6',
+    label: 'crucible v6 Ornith-1.5-9B (frame:8096)',
+    baseURL: 'http://frame:8096/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'ornith-v6-q5_k_m.gguf',
+    kind: 'local',
+  },
+  {
+    // crucible v6 candidate: LFM2.5-8B-A1B (lfm2_moe, 32-expert/4-active). llama.cpp lfm2moe +
+    // <|tool_call_start|> parser (bug #23838 fixed in frame's build). Serve reasoning off.
+    id: 'lfm2-v6',
+    label: 'crucible v6 LFM2.5-8B-A1B (frame:8097)',
+    baseURL: 'http://frame:8097/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'lfm2-v6-q5_k_m.gguf',
+    kind: 'local',
+  },
 ];
 
 export function getClient(m: ModelConfig): OpenAI {

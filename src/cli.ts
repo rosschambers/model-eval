@@ -14,7 +14,7 @@ import { getProfiles, type AgentProfile } from './profile.js';
 import { runProfiles, writeRaw, writeScores, type RawRecord } from './run.js';
 import { writeSummary } from './summary.js';
 import { writeBundle } from './bundle.js';
-import { saveBaseline, loadBaseline } from './baseline-cache.js';
+import { saveBaseline, loadBaseline, mergeBaselineRecords } from './baseline-cache.js';
 import { appendRegistry } from './registry.js';
 
 export interface ParsedArgs {
@@ -161,7 +161,8 @@ export async function runCommand(args: ParsedArgs, deps: RunDeps): Promise<void>
     let cachedIds = new Set<string>();
     if (baseline.mode === 'live') {
       const baselineRows = records.filter((r) => r.model === baseline.id);
-      deps.saveBaseline(baselinesDir, baseline.id, baselineRows);
+      const cachedRows = deps.loadBaseline(baselinesDir, baseline.id) ?? [];
+      deps.saveBaseline(baselinesDir, baseline.id, mergeBaselineRecords(cachedRows, baselineRows));
     } else if (baseline.mode === 'cached') {
       const cached = deps.loadBaseline(baselinesDir, baseline.id);
       if (cached === null) {

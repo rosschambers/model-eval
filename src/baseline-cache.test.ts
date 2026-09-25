@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { saveBaseline, loadBaseline } from './baseline-cache.js';
+import { saveBaseline, loadBaseline, mergeBaselineRecords } from './baseline-cache.js';
 import type { RawRecord } from './run.js';
 
 function rec(over: Partial<RawRecord>): RawRecord {
@@ -47,5 +47,25 @@ describe('baseline-cache', () => {
   it('returns null when the baseline id is missing', () => {
     const dir = mkdtempSync(join(tmpdir(), 'baselines-'));
     expect(loadBaseline(dir, 'nope')).toBeNull();
+  });
+});
+
+describe('mergeBaselineRecords', () => {
+  it('replaces every cached record of a (profile, case) the fresh run covered, keeping all others', () => {
+    const cached = [
+      rec({ profile: 'hugo', caseId: 'a', repeat: 0 }),
+      rec({ profile: 'hugo', caseId: 'a', repeat: 1 }),
+      rec({ profile: 'hugo', caseId: 'b', repeat: 0 }),
+      rec({ profile: 'murmur8', caseId: 'a', repeat: 0 }),
+    ];
+    const fresh = [rec({ profile: 'hugo', caseId: 'a', repeat: 0, model: 'fresh' })];
+
+    const merged = mergeBaselineRecords(cached, fresh);
+
+    expect(merged.map((r) => `${r.profile}/${r.caseId}/${r.repeat}/${r.model}`).sort()).toEqual([
+      'hugo/a/0/fresh',
+      'hugo/b/0/qwen-agentic',
+      'murmur8/a/0/qwen-agentic',
+    ]);
   });
 });

@@ -32,3 +32,16 @@ export function loadBaseline(dir: URL | string, id: string): RawRecord[] | null 
     .filter((line) => line.length > 0)
     .map((line) => JSON.parse(line) as RawRecord);
 }
+
+/**
+ * Fold a fresh live baseline run into the cached records. A live run can cover
+ * a subset (one `--profile`, one `--case`), so saving only its rows would drop
+ * every other profile's cached baseline. Every cached record whose
+ * (profile, case) the fresh run covered is replaced — all repeats, since the
+ * fresh run's repeat count may differ — and all others are kept.
+ */
+export function mergeBaselineRecords(cached: RawRecord[], fresh: RawRecord[]): RawRecord[] {
+  const coveredKeys = new Set(fresh.map((record) => `${record.profile}\u0000${record.caseId}`));
+  const kept = cached.filter((record) => !coveredKeys.has(`${record.profile}\u0000${record.caseId}`));
+  return [...kept, ...fresh];
+}

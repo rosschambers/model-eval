@@ -180,6 +180,22 @@ describe('runCommand', () => {
       expect(spy.saveBaselineCalls).toHaveLength(1);
       expect(spy.saveBaselineCalls[0].id).toBe('qwen-agentic');
       expect(spy.saveBaselineCalls[0].records.map((r) => r.model)).toEqual(['qwen-agentic']);
+    });
+
+    it('keeps cached records for profiles and cases this live run did not cover', async () => {
+      const spy = makeSpy();
+      spy.loadBaselineReturn = [
+        fakeRecord('qwen-agentic', { profile: 'murmur8', caseId: 'm8-1' }),
+        fakeRecord('qwen-agentic', { profile: 'hugo', caseId: 'c', repeat: 7 }),
+      ];
+      const args: ParsedArgs = { command: 'run', hfSpec: 'owner/repo', keep: false };
+      await runCommand(args, spy.deps);
+
+      const saved = spy.saveBaselineCalls[0].records;
+      expect(saved.map((r) => `${r.profile}/${r.caseId}/${r.repeat}`).sort()).toEqual([
+        'hugo/c/0',
+        'murmur8/m8-1/0',
+      ]);
 
       expect(spy.appendRegistryCalls).toHaveLength(1);
       const reg = spy.appendRegistryCalls[0];

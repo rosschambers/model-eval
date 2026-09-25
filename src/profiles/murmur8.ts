@@ -7,7 +7,7 @@
 // case set into the AgentProfile shape.
 
 import type { AgentProfile } from '../profile.js';
-import { buildMurmur8PortalPrompt } from '../murmur8-prompt.js';
+import { buildMurmur8PortalPrompt, buildMurmur8UserContext } from '../murmur8-prompt.js';
 import { getMurmur8ToolDefs } from '../tools-murmur8.js';
 import { defaultMocks } from '../mock-engine.js';
 import { MURMUR8_CASES } from '../cases-murmur8.js';
@@ -16,6 +16,7 @@ export const murmur8Profile: AgentProfile = {
   id: 'murmur8',
   label: 'murmur8 (in-app agent)',
   buildSystemPrompt: buildMurmur8PortalPrompt,
+  buildTrailingUserContext: buildMurmur8UserContext,
   toolDefs: getMurmur8ToolDefs(),
   mockDefaults: defaultMocks,
   replyConstraints: { maxChars: null, allowMarkdown: true, allowNarration: false },

@@ -108,6 +108,9 @@ export async function runCase(
   if (c.screenContext !== undefined) {
     messages.push({ role: 'system', content: c.screenContext });
   }
+  if (c.userContext !== undefined) {
+    messages.push({ role: 'system', content: c.userContext });
+  }
 
   const { transcript } = await runLoop(client, modelName, messages, tools, c.mocks ?? {});
   return transcript;

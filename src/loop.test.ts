@@ -256,6 +256,25 @@ describe('runCase', () => {
     expect(smsIndex).toBeLessThan(messages.length - 1);
   });
 
+  it('appends userContext as the final system message, after screenContext, as production orders them', async () => {
+    const { client, calls } = stubClient([
+      {
+        choices: [{ message: { role: 'assistant', content: 'hello' } }],
+      },
+    ]);
+    const screen = '<screen-context route="tasks" type="data">\n</screen-context>';
+    const userContext = '<user-context timezone="America/Detroit">\nCurrent local time: now.\n</user-context>';
+
+    await runCase(client, 'model-x', baseCase({ sms: 'delete this', screenContext: screen, userContext }), SYS, TOOLS);
+
+    const tail = calls[0].messages.slice(-3);
+    expect(tail).toEqual([
+      { role: 'user', content: 'delete this' },
+      { role: 'system', content: screen },
+      { role: 'system', content: userContext },
+    ]);
+  });
+
   it('does not append a trailing system message when screenContext is absent', async () => {
     const { client, calls } = stubClient([
       {

@@ -75,7 +75,9 @@ export async function runOneProfile(
 
   for (const c of cases) {
     const mergedMocks = { ...profile.mockDefaults, ...(c.mocks ?? {}) };
-    const mergedCase: BenchCase = { ...c, mocks: mergedMocks };
+    const sms = profile.buildUserMessage ? profile.buildUserMessage(c.sms) : c.sms;
+    const userContext = c.userContext ?? profile.buildTrailingUserContext?.();
+    const mergedCase: BenchCase = { ...c, sms, userContext, mocks: mergedMocks };
 
     for (let rep = 0; rep < repeat; rep++) {
       try {

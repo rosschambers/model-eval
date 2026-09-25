@@ -5,29 +5,12 @@
 // The pinned instant matches Hugo's so both profiles share one benchmark clock.
 
 import { readFileSync } from 'node:fs';
-
-// Pinned instant for the benchmark clock (same as Hugo).
-const NOW_UTC_ISO = '2026-06-26T18:00:00Z';
-const USER_TIMEZONE = 'America/Detroit';
+import { NOW_UTC_ISO, USER_TIMEZONE, pinnedLocalTime } from './pinned-clock.js';
 
 // The murmur8 PORTAL agent's live system prompt is the `AI:SystemPrompt` string
 // inside the API's appsettings.json. Its location MUST be provided via the
 // MURMUR8_APPSETTINGS_PATH env var, mirroring how the Hugo loader requires
 // HUGO_WORKFLOW_PATH.
-
-/** Format the pinned instant as the user's local wall-clock time. */
-function pinnedLocalTime(): string {
-  return new Date(NOW_UTC_ISO).toLocaleString('en-US', {
-    timeZone: USER_TIMEZONE,
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
-}
 
 /**
  * Build the murmur8 system prompt: the verbatim snapshot plus a pinned-clock
@@ -66,7 +49,24 @@ export function buildMurmur8PortalPrompt(): string {
         'The murmur8 portal prompt loader expects a JSON object with a non-empty AI.SystemPrompt.',
     );
   }
-  const base = systemPrompt.trimEnd();
-  const nowLocal = pinnedLocalTime();
-  return `${base}\n\nCurrent time: ${nowLocal} (${USER_TIMEZONE}).`;
+  // Verbatim: the portal agent's time context is NOT part of its system prompt — it
+  // arrives as a trailing <user-context> system message (buildMurmur8UserContext).
+  return systemPrompt.trimEnd();
+}
+
+/**
+ * The trailing `<user-context>` system message the murmur8 portal agent appends
+ * to every LLM call, after history and screen-context, for KV-cache reuse
+ * (`Murmur8.Application/AI/ChatMessageBuilder.cs::BuildUserContextMessage`,
+ * C# formats `dddd, MMMM d, yyyy h:mm tt` and `yyyy-MM-ddTHH:mm:ssZ`), filled
+ * from the pinned benchmark clock.
+ */
+export function buildMurmur8UserContext(): string {
+  // C#'s `dddd, MMMM d, yyyy h:mm tt` has no " at " between date and time.
+  const localNow = pinnedLocalTime().replace(' at ', ' ');
+  return (
+    `<user-context timezone="${USER_TIMEZONE}">\n` +
+    `Current local time: ${localNow}. Current UTC time: ${NOW_UTC_ISO}.\n` +
+    '</user-context>'
+  );
 }

@@ -22,6 +22,10 @@ export interface AgentProfile {
   id: string;
   label: string;
   buildSystemPrompt: () => string;
+  /** Wrap a case's raw sms the way production builds the user turn (for example, appending a time context). */
+  buildUserMessage?: (sms: string) => string;
+  /** Per-request trailing context system message (for example murmur8's <user-context> clock). */
+  buildTrailingUserContext?: () => string;
   toolDefs: ChatCompletionTool[];
   mockDefaults: MockMap;
   replyConstraints: ReplyConstraints;

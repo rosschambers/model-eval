@@ -56,6 +56,10 @@ export interface BenchCase {
   // the runner injects it as a TRAILING system message after the user sms,
   // mirroring how the production portal agent supplies screen context.
   screenContext?: string;
+  // The per-request <user-context> block (timezone + current time). When set, the
+  // runner injects it as the FINAL trailing system message, after screenContext,
+  // mirroring the murmur8 portal agent's ChatMessageBuilder ordering.
+  userContext?: string;
 }
 
 export interface AssertionResult {

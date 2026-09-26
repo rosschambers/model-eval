@@ -5,7 +5,7 @@
 //
 //   npx tsx src/run.ts [--model <id>[,<id>...]] [--profile <id>[,<id>...]]
 //                       [--case <id>] [--repeat <N>]
-//                       [--intervention structural|verify]
+//                       [--intervention structural|verify] [--temperature <0-2>]
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -16,6 +16,7 @@ import { runCase } from './loop.js';
 import type { ChatClient } from './loop.js';
 import { withStructuralGuard, withVerificationPass, type CaseRunner } from './interventions.js';
 import { scoreCase } from './score.js';
+import { parseTemperature } from './temperature.js';
 import { getProfiles, type AgentProfile } from './profile.js';
 import type { BenchCase, Transcript, AssertionResult } from './case.js';
 
@@ -176,6 +177,8 @@ async function main(): Promise<void> {
   const profileFilter = parseFlag(argv, '--profile');
   const caseFilter = parseFlag(argv, '--case');
   const intervention = parseFlag(argv, '--intervention');
+  // Explicit sampling temperature on every request (default: omitted, the server default).
+  const temperature = parseTemperature(parseFlag(argv, '--temperature'));
 
   let runner: CaseRunner;
   if (intervention === 'structural') {
@@ -207,7 +210,7 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  const records = await runProfiles(models, profiles, { caseId: caseFilter, repeat, runner });
+  const records = await runProfiles(models, profiles, { caseId: caseFilter, repeat, runner, temperature });
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const resultsDir = new URL(`../results/${timestamp}/`, import.meta.url);

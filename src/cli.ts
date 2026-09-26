@@ -16,6 +16,9 @@ import { writeSummary } from './summary.js';
 import { writeBundle } from './bundle.js';
 import { saveBaseline, loadBaseline, mergeBaselineRecords } from './baseline-cache.js';
 import { appendRegistry } from './registry.js';
+import { parseTemperature } from './temperature.js';
+
+export { parseTemperature };
 
 export interface ParsedArgs {
   command: 'run' | 'serve' | 'stop';
@@ -33,20 +36,6 @@ const USAGE =
   '       model-eval serve <hfSpec> [--port N]\n' +
   '       model-eval stop --port N';
 
-/**
- * Parse and validate the `--temperature` flag. Undefined when the flag is
- * absent, so the caller sends no `temperature` field and the server default
- * applies (current behavior). Throws loudly for a non-finite value or one
- * outside the valid range [0, 2].
- */
-function parseTemperature(raw: string | undefined): number | undefined {
-  if (raw === undefined) return undefined;
-  const value = Number(raw);
-  if (!Number.isFinite(value) || value < 0 || value > 2) {
-    throw new Error(`--temperature must be a finite number between 0 and 2, got '${raw}'`);
-  }
-  return value;
-}
 
 function flagValue(argv: string[], flag: string): string | undefined {
   const index = argv.indexOf(flag);

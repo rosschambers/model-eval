@@ -106,11 +106,11 @@
           },
           "start": {
             "type": "string",
-            "description": "Range start as ISO 8601 UTC (e.g. 2026-03-01T00:00:00Z). Optional for: calendar_events; defaults to now, so past events are hidden unless you pass an earlier start."
+            "description": "Range start as ISO 8601. Without Z or an offset it is the user's local time (e.g. 2026-03-01T00:00:00 is local midnight); with Z or an offset it is that exact instant. Optional for: calendar_events; defaults to now, so past events are hidden unless you pass an earlier start."
           },
           "end": {
             "type": "string",
-            "description": "Range end as ISO 8601 UTC. Optional for: calendar_events; defaults to 7 days after start. Response includes truncated:true if the 50-occurrence cap was hit; narrow the range in that case."
+            "description": "Range end as ISO 8601, read like start: without Z or an offset it is the user's local time. Optional for: calendar_events; defaults to 7 days after start. Response includes truncated:true if the 50-occurrence cap was hit; narrow the range in that case."
           },
           "createdBy": {
             "type": "string",

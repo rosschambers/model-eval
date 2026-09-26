@@ -121,6 +121,26 @@ export const MODELS: ModelConfig[] = [
     kind: 'local',
   },
   {
+    // crucible v7.1: corpus-v7.1 (735 traces) — every clock carries the "Next 7 days" table the
+    // production clocks now send, 48 weekend-clock weekday golds, the double-clock and
+    // unprepared-real-trace defects fixed. Serve on 8090 (production v7 stays on 8289).
+    id: 'crucible-9b-v71',
+    label: 'crucible v7.1 Qwen3.5-9B corpus-v7.1 (frame:8090)',
+    baseURL: 'http://frame:8090/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'crucible-9b-v71-q5_k_m.gguf',
+    kind: 'local',
+  },
+  {
+    // Production v7 on the B580 (promoted 2026-09-26), for same-run comparisons against v7.1.
+    id: 'crucible-9b-v7-prod',
+    label: 'crucible v7 production (frame:8289)',
+    baseURL: 'http://frame:8289/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'crucible-9b-v7-q5_k_m.gguf',
+    kind: 'local',
+  },
+  {
     // crucible v6 candidate: Ornith-1.5-9B (dense qwen35, MIT). Same recipe/serve as the anchor.
     id: 'ornith-v6',
     label: 'crucible v6 Ornith-1.5-9B (frame:8096)',

@@ -11,6 +11,7 @@ import { hugoProfile } from './profiles/hugo.js';
 import { murmur8Profile } from './profiles/murmur8.js';
 import { homeProfile } from './profiles/home.js';
 import { voiceProfile } from './profiles/voice.js';
+import { hugoProbeProfile, murmur8ProbeProfile } from './profiles/probe.js';
 
 export interface ReplyConstraints {
   maxChars: number | null;
@@ -37,6 +38,8 @@ export const PROFILES: Record<string, AgentProfile> = {
   murmur8: murmur8Profile,
   home: homeProfile,
   voice: voiceProfile,
+  'hugo-probe': hugoProbeProfile,
+  'murmur8-probe': murmur8ProbeProfile,
 };
 
 /**

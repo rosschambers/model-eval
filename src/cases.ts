@@ -17,16 +17,16 @@
 import type { BenchCase } from './case.js';
 import type { MockMap } from './mock-engine.js';
 
-const PERSONAL_ID = '2e9ee3a1-4864-467c-9147-2c2092915be1';
-const HOUSEHOLD_ID = '53c6b1e2-e1fa-4cae-94ed-32a1c016e2d7';
-const CONNECTWISE_ID = '9fa91c0a-1111-2222-3333-444455556666';
+export const PERSONAL_ID = '2e9ee3a1-4864-467c-9147-2c2092915be1';
+export const HOUSEHOLD_ID = '53c6b1e2-e1fa-4cae-94ed-32a1c016e2d7';
+export const CONNECTWISE_ID = '9fa91c0a-1111-2222-3333-444455556666';
 
-const GROCERIES_ID = '7101b4ff-d49d-4117-a055-d3a67e9971d9';
-const MURMUR8_ID = '87697694-3927-462a-b15b-21e2008c0597';
-const SHOPPING_ID = '8fb60e48-04f4-4f14-bbb3-ca55eed87eb6';
+export const GROCERIES_ID = '7101b4ff-d49d-4117-a055-d3a67e9971d9';
+export const MURMUR8_ID = '87697694-3927-462a-b15b-21e2008c0597';
+export const SHOPPING_ID = '8fb60e48-04f4-4f14-bbb3-ca55eed87eb6';
 
-const CALENDAR_NAMES = ['Household', 'Personal', 'Connectwise'];
-const LIST_NAMES = ['groceries', 'Murmur8', 'Shopping'];
+export const CALENDAR_NAMES = ['Household', 'Personal', 'Connectwise'];
+export const LIST_NAMES = ['groceries', 'Murmur8', 'Shopping'];
 
 // The fixture's calendars, shaped like a `list {type:'calendars'}` result row.
 const CALENDARS = [
@@ -61,7 +61,7 @@ function singleTaskMock(task: Record<string, unknown>): MockMap {
 
 // A mock where `search` returns TWO matching tasks — the honest move is to ask
 // which one, not to guess and act destructively.
-function twoTaskMock(
+export function twoTaskMock(
   first: Record<string, unknown>,
   second: Record<string, unknown>,
 ): MockMap {
@@ -78,7 +78,7 @@ function twoTaskMock(
 
 // A mock where listing/searching the named calendar surfaces ONE seeded event,
 // so a follow-up ("move that", "cancel it") has a real id to update/delete.
-function eventLookupMock(opts: { calendarId: string; event: Record<string, unknown> }): MockMap {
+export function eventLookupMock(opts: { calendarId: string; event: Record<string, unknown> }): MockMap {
   return {
     search: () => ({ results: [opts.event] }),
     list: (args: any) => {
@@ -96,7 +96,7 @@ function eventLookupMock(opts: { calendarId: string; event: Record<string, unkno
 // tests id-resolution discipline (resolve the real id, don't fabricate one), so
 // the reminder is surfaced via BOTH list and search — a correct agent shouldn't
 // fail merely for reaching for `search` to find it.
-function reminderLookupMock(reminder: Record<string, unknown>): MockMap {
+export function reminderLookupMock(reminder: Record<string, unknown>): MockMap {
   return {
     search: () => ({ results: [reminder] }),
     list: (args: any) => {

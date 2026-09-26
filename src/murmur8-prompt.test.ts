@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   buildMurmur8SystemPrompt,
   buildMurmur8PortalPrompt,
@@ -50,5 +53,45 @@ describe('murmur8 trailing user-context', () => {
         process.env.MURMUR8_APPSETTINGS_PATH = original;
       }
     }
+  });
+});
+
+describe('murmur8 portal prompt layering (murmur8 128be8d4: shared ai-prompts.json below host appsettings)', () => {
+  function layout(appsettings: unknown, prompts?: unknown): string {
+    const root = mkdtempSync(join(tmpdir(), 'murmur8-layout-'));
+    mkdirSync(join(root, 'src/Murmur8.Api'), { recursive: true });
+    mkdirSync(join(root, 'src/Murmur8.Infrastructure/AI'), { recursive: true });
+    const appsettingsPath = join(root, 'src/Murmur8.Api/appsettings.json');
+    writeFileSync(appsettingsPath, JSON.stringify(appsettings));
+    if (prompts !== undefined) {
+      writeFileSync(join(root, 'src/Murmur8.Infrastructure/AI/ai-prompts.json'), JSON.stringify(prompts));
+    }
+    return appsettingsPath;
+  }
+
+  function withAppsettings(path: string, run: () => void): void {
+    const original = process.env.MURMUR8_APPSETTINGS_PATH;
+    process.env.MURMUR8_APPSETTINGS_PATH = path;
+    try {
+      run();
+    } finally {
+      if (original === undefined) delete process.env.MURMUR8_APPSETTINGS_PATH;
+      else process.env.MURMUR8_APPSETTINGS_PATH = original;
+    }
+  }
+
+  it('falls back to the shared Infrastructure/AI/ai-prompts.json when appsettings has no SystemPrompt', () => {
+    const path = layout({ AI: { Model: 'x' } }, { AI: { SystemPrompt: 'shared portal prompt' } });
+    withAppsettings(path, () => expect(buildMurmur8PortalPrompt()).toBe('shared portal prompt'));
+  });
+
+  it('lets a host appsettings SystemPrompt override the shared one, as the configuration layering does', () => {
+    const path = layout({ AI: { SystemPrompt: 'host override' } }, { AI: { SystemPrompt: 'shared portal prompt' } });
+    withAppsettings(path, () => expect(buildMurmur8PortalPrompt()).toBe('host override'));
+  });
+
+  it('throws when neither layer has a SystemPrompt', () => {
+    const path = layout({ AI: {} });
+    withAppsettings(path, () => expect(() => buildMurmur8PortalPrompt()).toThrow(/SystemPrompt/));
   });
 });

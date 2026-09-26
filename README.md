@@ -63,7 +63,12 @@ and an in-app assistant) with their production system prompts and tool surfaces.
 - An SSH-accessible host with `llama-server` installed and `/var/lib/llama-server/models/` writable.
   Default target: `ssh frame`. Override with `FRAME_SSH_HOST`.
 - `HUGO_WORKFLOW_PATH` — path to the n8n workflow source containing the Hugo system prompt.
-- `MURMUR8_APPSETTINGS_PATH` — path to an appsettings.json with the murmur8 agent prompt.
+- `MURMUR8_APPSETTINGS_PATH` — path to the murmur8 API's appsettings.json. The portal prompt is taken
+  from its `AI.SystemPrompt` if present, otherwise from the shared prompts file beside it
+  (`../Murmur8.Infrastructure/AI/ai-prompts.json`, override with `MURMUR8_AI_PROMPTS_PATH`) — the same
+  layering murmur8 itself uses.
+- `fixtures/tools-fixture.json` is a capture of murmur8's served `tools/list`. Re-capture it after any
+  murmur8 tool-schema change; the mock engine enforces its required arguments like production does.
 - `HF_TOKEN` for gated HuggingFace repos. `FRAME_API_KEY` for non-default llama-server auth.
 - The test suite needs none of the above — fixtures are self-contained.
 

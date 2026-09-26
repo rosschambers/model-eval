@@ -4,7 +4,8 @@
 // snapshot of the real AI.SystemPrompt and appending a pinned-clock context line.
 // The pinned instant matches Hugo's so both profiles share one benchmark clock.
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { NOW_UTC_ISO, USER_TIMEZONE, pinnedLocalTime } from './pinned-clock.js';
 
 // The murmur8 PORTAL agent's live system prompt is the `AI:SystemPrompt` string
@@ -23,13 +24,23 @@ export function buildMurmur8SystemPrompt(): string {
   return `${base}\n\nCurrent time: ${nowLocal} (${USER_TIMEZONE}).`;
 }
 
+/** `AI.SystemPrompt` from a murmur8 configuration JSON file, or undefined if absent/empty. */
+function systemPromptIn(path: string): string | undefined {
+  if (!existsSync(path)) return undefined;
+  const parsed = JSON.parse(readFileSync(path, 'utf8')) as { AI?: { SystemPrompt?: unknown } };
+  const prompt = parsed.AI?.SystemPrompt;
+  return typeof prompt === 'string' && prompt.trim().length > 0 ? prompt : undefined;
+}
+
 /**
  * Build the murmur8 PORTAL agent's system prompt: the verbatim `AI.SystemPrompt`
- * from the API's appsettings.json (which contains the "SCREEN CONTEXT (CURRENT
- * PAGE):" instructions the in-app agent runs with) plus a pinned-clock context
- * line. The appsettings path comes from the required MURMUR8_APPSETTINGS_PATH
- * env var. Throws if the env var is unset, the file cannot be read, or it does
- * not contain an `AI.SystemPrompt` string.
+ * (the "SCREEN CONTEXT (CURRENT PAGE):" instructions the in-app agent runs with),
+ * resolved with the same layering production uses since murmur8 128be8d4: the host's
+ * appsettings.json wins, else the shared `Murmur8.Infrastructure/AI/ai-prompts.json`
+ * (an embedded resource both hosts load BELOW their appsettings). The appsettings
+ * path comes from the required MURMUR8_APPSETTINGS_PATH env var; the shared file
+ * from MURMUR8_AI_PROMPTS_PATH, defaulting to its place beside the Api project.
+ * Throws if neither layer has a non-empty `AI.SystemPrompt`.
  */
 export function buildMurmur8PortalPrompt(): string {
   const appsettingsPath = process.env.MURMUR8_APPSETTINGS_PATH;
@@ -40,13 +51,15 @@ export function buildMurmur8PortalPrompt(): string {
         '(for tests, fixtures/murmur8-appsettings-fixture.json).',
     );
   }
-  const raw = readFileSync(new URL(`file://${appsettingsPath}`), 'utf8');
-  const parsed = JSON.parse(raw) as { AI?: { SystemPrompt?: unknown } };
-  const systemPrompt = parsed.AI?.SystemPrompt;
-  if (typeof systemPrompt !== 'string' || systemPrompt.trim().length === 0) {
+  const sharedPromptsPath =
+    process.env.MURMUR8_AI_PROMPTS_PATH ??
+    join(dirname(appsettingsPath), '..', 'Murmur8.Infrastructure', 'AI', 'ai-prompts.json');
+  const systemPrompt = systemPromptIn(appsettingsPath) ?? systemPromptIn(sharedPromptsPath);
+  if (systemPrompt === undefined) {
     throw new Error(
-      `AI.SystemPrompt not found (or not a string) in ${appsettingsPath}. ` +
-        'The murmur8 portal prompt loader expects a JSON object with a non-empty AI.SystemPrompt.',
+      `AI.SystemPrompt not found in ${appsettingsPath} or ${sharedPromptsPath}. The murmur8 ` +
+        'portal prompt loader expects a non-empty AI.SystemPrompt in the host appsettings or ' +
+        'the shared Infrastructure/AI/ai-prompts.json.',
     );
   }
   // Verbatim: the portal agent's time context is NOT part of its system prompt — it

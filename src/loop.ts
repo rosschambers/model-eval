@@ -57,7 +57,15 @@ export async function runLoop(
         }
         const record: ToolCallRecord = { name: call.function.name, args };
         toolCalls.push(record);
-        const result = runTool(call.function.name, args, mocks ?? {});
+        const check = checkArguments(tools, call.function.name, args);
+        if (check.unknown.length > 0) record.unknownArguments = check.unknown;
+        // A missing required argument fails in production before the tool runs
+        // (murmur8 SchemaHelper.GetRequiredString → ToolValidationException), so the
+        // mock must not answer it either.
+        const result =
+          check.missingRequired.length > 0
+            ? JSON.stringify({ error: `Missing required parameter: '${check.missingRequired[0]}'` })
+            : runTool(call.function.name, args, mocks ?? {});
         try {
           const parsed = JSON.parse(result);
           if (parsed !== null && typeof parsed === 'object') {
@@ -92,6 +100,22 @@ export async function runLoop(
  * (system + history + user sms) and delegates to runLoop, returning just the
  * transcript. Never makes side effects beyond calling the supplied client.
  */
+/** Missing required and undefined argument names for a call, per the tool's JSON schema. */
+function checkArguments(
+  tools: any[],
+  name: string,
+  args: Record<string, unknown>,
+): { missingRequired: string[]; unknown: string[] } {
+  const parameters = tools.find((tool) => tool?.function?.name === name)?.function?.parameters;
+  if (!parameters || '_raw' in args) return { missingRequired: [], unknown: [] };
+  const properties = Object.keys(parameters.properties ?? {});
+  const required: string[] = parameters.required ?? [];
+  return {
+    missingRequired: required.filter((key) => !(key in args)),
+    unknown: properties.length > 0 ? Object.keys(args).filter((key) => !properties.includes(key)) : [],
+  };
+}
+
 export async function runCase(
   client: ChatClient,
   modelName: string,

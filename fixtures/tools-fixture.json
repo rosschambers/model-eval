@@ -1,78 +1,193 @@
 {
-  "_source": "Captured from a production Murmur8 deployment, 2026-06-26. Schemas transcribed verbatim from the served tools/list.",
+  "_source": "Captured from the tools/list payload built by murmur8 9989c0d5 McpToolFactory (ExposedToolNames order), 2026-09-25. Regenerate after any murmur8 tool-schema change (the 2026-06-26 capture had drifted: no revision/clearFields/remindAt, 16 of 18 tools).",
   "tools": [
-    {
-      "name": "create",
-      "description": "Create a new entity of the specified type (task, task_list, task_comment, task_list_member, directory, album, album_photo, album_member, share_link, calendar, calendar_event, calendar_member, event_attendee, feed_subscription, custom_feed, email_folder, reminder).",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "type": { "type": "string", "enum": ["task", "task_list", "task_comment", "task_list_member", "directory", "album", "album_photo", "album_member", "share_link", "calendar", "calendar_event", "calendar_member", "event_attendee", "feed_subscription", "custom_feed", "email_folder", "reminder"], "description": "The entity type to create." },
-          "title": { "type": "string", "description": "Title. Required for: task, reminder." },
-          "name": { "type": "string", "description": "Display name. Required for: task_list, directory, album, calendar." },
-          "description": { "type": "string", "description": "Detailed description. Applies to: task, album, calendar, calendar_event." },
-          "taskListId": { "type": "string", "description": "Task list ID. Required for: task, task_list_member." },
-          "calendarId": { "type": "string", "description": "Calendar ID. Required for: calendar_event, calendar_member." },
-          "startTime": { "type": "string", "description": "Start date-time as local time WITHOUT timezone offset or Z suffix (e.g. 2026-03-15T22:30:00). The timezone is provided separately via the timeZone parameter. Required for: calendar_event." },
-          "endTime": { "type": "string", "description": "End date-time as local time WITHOUT timezone offset or Z suffix (e.g. 2026-03-15T23:30:00). The timezone is provided separately via the timeZone parameter. Required for: calendar_event." },
-          "timeZone": { "type": "string", "description": "IANA timezone (e.g. America/New_York). Required for: calendar_event." },
-          "isAllDay": { "type": "boolean", "description": "All-day event flag. Optional for: calendar_event." },
-          "location": { "type": "string", "description": "Event location. Optional for: calendar_event." },
-          "url": { "type": "string", "description": "Associated URL. Optional for: calendar_event." },
-          "rrule": { "type": "string", "description": "RRULE recurrence string. Optional for: calendar_event." },
-          "color": { "type": "string", "description": "Hex color code. Required for: calendar." },
-          "dueDate": { "type": "string", "description": "Due date as ISO 8601 (e.g. 2026-03-15T00:00:00Z). Optional for: task." },
-          "priority": { "type": "integer", "minimum": 0, "maximum": 9, "description": "Priority from 0 (undefined) to 9 (lowest). 1 = highest. Optional for: task." },
-          "tags": { "type": "array", "items": { "type": "string" }, "description": "Tag list. Optional for: task." },
-          "parentTaskId": { "type": "string", "description": "Parent task ID to create a subtask. Optional for: task. Max 1 level deep." },
-          "remindAt": { "type": "string", "description": "ISO 8601 UTC datetime. Required for: reminder." },
-          "note": { "type": "string", "description": "Optional longer note body. Optional for: reminder." },
-          "linkedTaskId": { "type": "string", "description": "Task ID. Optional for: reminder." },
-          "originalInput": { "type": "string", "description": "Original natural language phrasing. Optional for: reminder." },
-          "text": { "type": "string", "description": "Comment body. Required for: task_comment." },
-          "taskId": { "type": "string", "description": "Task ID. Required for: task_comment." },
-          "username": { "type": "string", "description": "Username to add as member. Required for: task_list_member, calendar_member." },
-          "permission": { "type": "string", "enum": ["View", "Edit", "Share", "Admin"], "description": "Permission level." },
-          "memberUserId": { "type": "string", "description": "User ID to add as member. Required for: album_member." },
-          "albumId": { "type": "string", "description": "Album ID. Required for: album_photo, album_member." },
-          "fileItemId": { "type": "string", "description": "File ID. Required for: album_photo. Optional for: share_link." },
-          "directoryId": { "type": "string", "description": "Directory ID to share. Optional for: share_link." },
-          "parentDirectoryId": { "type": "string", "description": "Parent directory ID. Omit for root. Optional for: directory." },
-          "email": { "type": "string", "description": "Email address. Required for: event_attendee." },
-          "eventId": { "type": "string", "description": "Calendar event ID. Required for: event_attendee." },
-          "feedSourceId": { "type": "string", "description": "Feed source ID. Required for: feed_subscription." },
-          "feedUrl": { "type": "string", "description": "RSS/Atom feed URL. Required for: custom_feed." },
-          "category": { "type": "string", "description": "Category for the feed. Optional for: custom_feed." },
-          "mailboxId": { "type": "string", "description": "Mailbox ID. Required for: email_folder." },
-          "password": { "type": "string", "description": "Access password. Optional for: share_link." },
-          "expiresAt": { "type": "string", "description": "Expiration date as ISO 8601. Optional for: share_link." },
-          "maxDownloads": { "type": "integer", "description": "Maximum download count. Optional for: share_link." }
-        },
-        "required": ["type"]
-      }
-    },
     {
       "name": "list",
       "description": "List entities of a given type. Returns { results, nextCursor }. Pass nextCursor to fetch the next page; null means end of list.",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "type": { "type": "string", "enum": ["tasks", "task_lists", "task_comments", "task_list_members", "files", "directories", "albums", "photos", "share_links", "calendars", "calendar_events", "calendar_members", "event_attendees", "feed_sources", "feed_articles", "feed_subscriptions", "emails", "email_threads", "email_folders", "reminders"], "description": "The entity type to list." },
-          "taskListId": { "type": "string", "description": "Filter by task list ID. Required for: task_list_members. Optional for: tasks." },
-          "status": { "type": "string", "enum": ["NeedsAction", "InProcess", "Completed", "Cancelled", "All"], "description": "Filter by status. Applies to: tasks. Defaults to active tasks." },
-          "calendarId": { "type": "string", "description": "Calendar ID. Optional for: calendar_events. Required for: calendar_members." },
-          "start": { "type": "string", "description": "Range start as ISO 8601 UTC. Required for: calendar_events." },
-          "end": { "type": "string", "description": "Range end as ISO 8601 UTC. Required for: calendar_events." },
-          "directoryId": { "type": "string", "description": "Filter by directory ID. Optional for: files." },
-          "albumId": { "type": "string", "description": "Album ID. Required for: photos." },
-          "eventId": { "type": "string", "description": "Calendar event ID. Required for: event_attendees." },
-          "folderId": { "type": "string", "description": "Filter by email folder ID. Applies to: emails, email_threads." },
-          "unread": { "type": "boolean", "description": "Filter to unread only. Applies to: emails, email_threads." },
-          "starred": { "type": "boolean", "description": "Filter to starred only. Applies to: emails, email_threads." },
-          "pageSize": { "type": "integer", "minimum": 1, "maximum": 100, "default": 20, "description": "Number of rows per page (max 100)." },
-          "cursor": { "type": "string", "description": "Pagination token from a previous response's nextCursor." }
+          "type": {
+            "type": "string",
+            "enum": [
+              "tasks",
+              "task_lists",
+              "task_comments",
+              "task_list_members",
+              "task_links",
+              "files",
+              "directories",
+              "albums",
+              "photos",
+              "share_links",
+              "calendars",
+              "calendar_events",
+              "calendar_members",
+              "event_attendees",
+              "feed_sources",
+              "feed_articles",
+              "feed_subscriptions",
+              "calendar_subscriptions",
+              "emails",
+              "email_threads",
+              "email_folders",
+              "reminders"
+            ],
+            "description": "The entity type to list."
+          },
+          "cursor": {
+            "type": "string",
+            "description": "Pagination token from a previous response's nextCursor. Omit for first page."
+          },
+          "pageSize": {
+            "type": "integer",
+            "default": 20,
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Number of rows per page (max 100). Default 20."
+          },
+          "createdAfter": {
+            "type": "string",
+            "description": "ISO 8601 UTC. Filters by entity creation time. Applies to types with CreatedAt: tasks, task_lists, task_comments, task_list_members, files, directories, albums, photos, share_links, calendars, calendar_members, event_attendees, feed_sources, feed_subscriptions, emails. Ignored on types without CreatedAt."
+          },
+          "createdBefore": {
+            "type": "string",
+            "description": "ISO 8601 UTC. Filters by entity creation time. See createdAfter."
+          },
+          "updatedAfter": {
+            "type": "string",
+            "description": "ISO 8601 UTC. Filters by entity last-update time. Applies to types with UpdatedAt: tasks, files, albums, calendars."
+          },
+          "updatedBefore": {
+            "type": "string",
+            "description": "ISO 8601 UTC. Filters by entity last-update time. See updatedAfter."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NeedsAction",
+              "InProcess",
+              "Completed",
+              "Cancelled",
+              "All",
+              "Pending",
+              "Fired",
+              "Dismissed"
+            ],
+            "description": "Filter by status. For tasks (NeedsAction/InProcess/Completed/Cancelled): defaults to active tasks (excludes Completed/Cancelled), which works account-wide. 'All'/'Completed'/'Cancelled' return whole-board history and REQUIRE a taskListId (one board at a time). For reminders (Pending/Fired/Dismissed/Cancelled): defaults to Pending (upcoming). Pass 'All' to include every status."
+          },
+          "taskListId": {
+            "type": "string",
+            "description": "Filter by task list ID. Required for: task_list_members; tasks when status is All/Completed/Cancelled. Optional for: tasks with active/no status."
+          },
+          "taskId": {
+            "type": "string",
+            "description": "Filter by task ID. Required for: task_comments, task_links."
+          },
+          "directoryId": {
+            "type": "string",
+            "description": "Filter by directory ID. Optional for: files."
+          },
+          "parentDirectoryId": {
+            "type": "string",
+            "description": "Filter by parent directory ID. Omit to list root directories. Optional for: directories."
+          },
+          "albumId": {
+            "type": "string",
+            "description": "Album ID. Required for: photos."
+          },
+          "calendarId": {
+            "type": "string",
+            "description": "Calendar ID. Optional for: calendar_events. Required for: calendar_members."
+          },
+          "eventId": {
+            "type": "string",
+            "description": "Calendar event ID. Required for: event_attendees."
+          },
+          "start": {
+            "type": "string",
+            "description": "Range start as ISO 8601 UTC (e.g. 2026-03-01T00:00:00Z). Optional for: calendar_events; defaults to now, so past events are hidden unless you pass an earlier start."
+          },
+          "end": {
+            "type": "string",
+            "description": "Range end as ISO 8601 UTC. Optional for: calendar_events; defaults to 7 days after start. Response includes truncated:true if the 50-occurrence cap was hit; narrow the range in that case."
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Filter by creator user ID. Applies to: tasks."
+          },
+          "updatedBy": {
+            "type": "string",
+            "description": "Filter by last editor user ID. Applies to: tasks."
+          },
+          "parentTaskId": {
+            "type": "string",
+            "description": "Filter by parent task ID to list subtasks. Applies to: tasks."
+          },
+          "category": {
+            "type": "string",
+            "description": "Filter by category. Applies to: feed_articles, feed_subscriptions."
+          },
+          "folderId": {
+            "type": "string",
+            "description": "Filter by email folder ID. Applies to: emails, email_threads."
+          },
+          "starred": {
+            "type": "boolean",
+            "description": "Filter to starred only. Applies to: emails, email_threads."
+          },
+          "unread": {
+            "type": "boolean",
+            "description": "Filter to unread only. Applies to: emails, email_threads."
+          },
+          "isRead": {
+            "type": "boolean",
+            "description": "Filter by read state. Applies to: feed_articles. Defaults to unread (false) when omitted; pass true to list already-read articles."
+          },
+          "isBookmarked": {
+            "type": "boolean",
+            "description": "Filter to bookmarked only. Applies to: feed_articles."
+          },
+          "isSubscribed": {
+            "type": "boolean",
+            "description": "Filter to subscribed feeds only. Applies to: feed_sources."
+          },
+          "publishedAfter": {
+            "type": "string",
+            "description": "ISO 8601 UTC. Filters by published time. Applies to: feed_articles."
+          },
+          "publishedBefore": {
+            "type": "string",
+            "description": "ISO 8601 UTC. See publishedAfter."
+          },
+          "dateAfter": {
+            "type": "string",
+            "description": "ISO 8601 UTC. Filters by message Date (sent/received). Applies to: emails."
+          },
+          "dateBefore": {
+            "type": "string",
+            "description": "ISO 8601 UTC. See dateAfter."
+          },
+          "lastActivityAfter": {
+            "type": "string",
+            "description": "ISO 8601 UTC. Filters by thread's last message date. Applies to: email_threads."
+          },
+          "lastActivityBefore": {
+            "type": "string",
+            "description": "ISO 8601 UTC. See lastActivityAfter."
+          },
+          "addedAfter": {
+            "type": "string",
+            "description": "ISO 8601 UTC. Filters by AddedAt. Applies to: task_list_members."
+          },
+          "addedBefore": {
+            "type": "string",
+            "description": "ISO 8601 UTC. See addedAfter."
+          }
         },
-        "required": ["type"]
+        "required": [
+          "type"
+        ]
       }
     },
     {
@@ -81,11 +196,269 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "type": { "type": "string", "enum": ["task", "task_list", "file", "directory", "album", "photo", "share_link", "calendar", "calendar_event", "feed_source", "feed_article", "email", "email_thread", "email_folder"], "description": "The entity type to retrieve." },
-          "id": { "type": "string", "description": "The unique identifier of the entity. Required for all types." },
-          "occurrenceDate": { "type": "string", "description": "For calendar_event with a recurring master: ISO 8601 UTC occurrence date to resolve a specific instance." }
+          "type": {
+            "type": "string",
+            "enum": [
+              "task",
+              "task_list",
+              "file",
+              "directory",
+              "album",
+              "photo",
+              "share_link",
+              "calendar",
+              "calendar_event",
+              "calendar_subscription",
+              "feed_source",
+              "feed_article",
+              "email",
+              "email_thread",
+              "email_folder"
+            ],
+            "description": "The entity type to retrieve."
+          },
+          "id": {
+            "type": "string",
+            "description": "The unique identifier of the entity. Required for all types."
+          },
+          "occurrenceDate": {
+            "type": "string",
+            "description": "For calendar_event with a recurring master: ISO 8601 UTC occurrence date to resolve a specific instance (e.g. 2026-04-13T14:00:00Z). Omit to get the master row."
+          }
         },
-        "required": ["type", "id"]
+        "required": [
+          "type",
+          "id"
+        ]
+      }
+    },
+    {
+      "name": "create",
+      "description": "Create a new entity of the specified type.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "task",
+              "task_list",
+              "task_comment",
+              "task_list_member",
+              "directory",
+              "album",
+              "album_photo",
+              "album_member",
+              "share_link",
+              "calendar",
+              "calendar_event",
+              "calendar_member",
+              "calendar_subscription",
+              "event_attendee",
+              "feed_subscription",
+              "custom_feed",
+              "email_folder",
+              "reminder",
+              "task_link"
+            ],
+            "description": "The entity type to create."
+          },
+          "title": {
+            "type": "string",
+            "description": "Title. Required for: task, reminder, calendar_event. For these, 'name' is accepted as an alias."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name. Required for: task_list, directory, album, calendar."
+          },
+          "taskListId": {
+            "type": "string",
+            "description": "Task list ID. Required for: task, task_list_member."
+          },
+          "taskId": {
+            "type": "string",
+            "description": "Task ID. Required for: task_comment."
+          },
+          "text": {
+            "type": "string",
+            "description": "Comment body. Required for: task_comment."
+          },
+          "username": {
+            "type": "string",
+            "description": "Username to add as member. Required for: task_list_member, calendar_member. Optional for: event_attendee."
+          },
+          "albumId": {
+            "type": "string",
+            "description": "Album ID. Required for: album_photo, album_member."
+          },
+          "fileItemId": {
+            "type": "string",
+            "description": "File ID. Required for: album_photo. Optional for: share_link."
+          },
+          "memberUserId": {
+            "type": "string",
+            "description": "User ID to add as member. Required for: album_member."
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description. Use for any context beyond a short title — user-provided detail, specifications, sub-items. Strongly recommended when the user provides rich text. Applies to: task, album, calendar, calendar_event. Supports annotations: @[DisplayName](user:userId) for user mentions, #[DisplayName](EntityType:entityId) for entity references (e.g. #[README.md](FileItem:abc-123))."
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9,
+            "description": "Priority from 0 (undefined) to 9 (lowest). 1 = highest. Optional for: task."
+          },
+          "dueDate": {
+            "type": "string",
+            "description": "Due date as ISO 8601 (e.g. 2026-03-15T00:00:00Z). Optional for: task."
+          },
+          "parentTaskId": {
+            "type": "string",
+            "description": "Parent task ID to create a subtask. Optional for: task. Max 1 level deep (cannot create a subtask of a subtask)."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tag list. Optional for: task. Call get_task_tags first to reuse existing tags and maintain consistent casing."
+          },
+          "parentDirectoryId": {
+            "type": "string",
+            "description": "Parent directory ID. Omit for root. Optional for: directory."
+          },
+          "permission": {
+            "type": "string",
+            "enum": [
+              "View",
+              "Edit",
+              "Share",
+              "Admin"
+            ],
+            "description": "Permission level (View/Edit/Share/Admin). Optional for: task_list_member (defaults to Edit), album_member (defaults to View). Required for: calendar_member."
+          },
+          "directoryId": {
+            "type": "string",
+            "description": "Directory ID to share. Optional for: share_link (provide fileItemId or directoryId)."
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "Expiration date as ISO 8601. Optional for: share_link."
+          },
+          "password": {
+            "type": "string",
+            "description": "Access password. Optional for: share_link."
+          },
+          "maxDownloads": {
+            "type": "integer",
+            "description": "Maximum download count. Optional for: share_link."
+          },
+          "eventId": {
+            "type": "string",
+            "description": "Calendar event ID. Required for: event_attendee."
+          },
+          "calendarId": {
+            "type": "string",
+            "description": "Calendar ID. Required for: calendar_event, calendar_member."
+          },
+          "startTime": {
+            "type": "string",
+            "description": "Start date-time as local time WITHOUT timezone offset or Z suffix (e.g. 2026-03-15T22:30:00). The timezone is provided separately via the timeZone parameter. Required for: calendar_event."
+          },
+          "endTime": {
+            "type": "string",
+            "description": "End date-time as local time WITHOUT timezone offset or Z suffix (e.g. 2026-03-15T23:30:00). The timezone is provided separately via the timeZone parameter. Required for: calendar_event."
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "IANA timezone (e.g. America/New_York). Required for: calendar_event."
+          },
+          "rrule": {
+            "type": "string",
+            "description": "RRULE recurrence string. Optional for: calendar_event."
+          },
+          "isAllDay": {
+            "type": "boolean",
+            "description": "All-day event flag. Optional for: calendar_event."
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex color code. Required for: calendar."
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address. Required for: event_attendee."
+          },
+          "location": {
+            "type": "string",
+            "description": "Event location. Optional for: calendar_event."
+          },
+          "url": {
+            "type": "string",
+            "description": "Associated URL. Optional for: calendar_event."
+          },
+          "icsUrl": {
+            "type": "string",
+            "description": "Public iCalendar (.ics) feed URL. Required for: calendar_subscription."
+          },
+          "syncIntervalMinutes": {
+            "type": "integer",
+            "description": "How often to re-sync the subscription, in minutes (minimum 60, default 1440). Optional for: calendar_subscription."
+          },
+          "feedSourceId": {
+            "type": "string",
+            "description": "Feed source ID. Required for: feed_subscription."
+          },
+          "feedUrl": {
+            "type": "string",
+            "description": "RSS/Atom feed URL. Required for: custom_feed."
+          },
+          "category": {
+            "type": "string",
+            "description": "Category for the feed (e.g. Technology, World News). Optional for: custom_feed."
+          },
+          "mailboxId": {
+            "type": "string",
+            "description": "Mailbox ID. Required for: email_folder."
+          },
+          "note": {
+            "type": "string",
+            "description": "Optional longer note body. Optional for: reminder."
+          },
+          "remindAt": {
+            "type": "string",
+            "description": "ISO 8601 UTC datetime. Required for: reminder."
+          },
+          "linkedTaskId": {
+            "type": "string",
+            "description": "Task ID. Optional for: reminder."
+          },
+          "originalInput": {
+            "type": "string",
+            "description": "Original natural language phrasing. Optional for: reminder."
+          },
+          "sourceTaskId": {
+            "type": "string",
+            "description": "Source task ID. Required for: task_link. For Parent it is the parent task; for Blocks it is the blocking task."
+          },
+          "targetTaskId": {
+            "type": "string",
+            "description": "Target task ID. Required for: task_link. For Parent it is the child task; for Blocks it is the blocked task."
+          },
+          "linkType": {
+            "type": "string",
+            "enum": [
+              "Parent",
+              "Related",
+              "Blocks"
+            ],
+            "description": "Relationship kind. Required for: task_link. Parent = subtask, Blocks = source blocks target, Related = soft link. For 'blocked by', swap source/target and use Blocks."
+          }
+        },
+        "required": [
+          "type"
+        ]
       }
     },
     {
@@ -94,31 +467,211 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "type": { "type": "string", "enum": ["task", "task_list", "task_comment", "file", "directory", "album", "album_photos", "active_album", "calendar", "calendar_event", "email", "reminder"], "description": "The entity type to update." },
-          "taskId": { "type": "string", "description": "Task ID. Required for: task." },
-          "title": { "type": "string", "description": "Title. Optional for: task." },
-          "status": { "type": "string", "description": "Status value. Optional for: task (NeedsAction, InProcess, Completed, Cancelled), calendar_event (Confirmed, Tentative, Cancelled)." },
-          "percentComplete": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Completion percentage 0-100. Optional for: task." },
-          "priority": { "type": "integer", "minimum": 0, "maximum": 9, "description": "Priority. Optional for: task." },
-          "dueDate": { "type": "string", "description": "Due date as ISO 8601. Optional for: task." },
-          "tags": { "type": "array", "items": { "type": "string" }, "description": "Tag list. Optional for: task." },
-          "description": { "type": "string", "description": "Detailed description. Applies to: task, album, calendar, calendar_event." },
-          "calendarId": { "type": "string", "description": "Calendar ID. Required for: calendar." },
-          "eventId": { "type": "string", "description": "Calendar event ID. Required for: calendar_event." },
-          "startTime": { "type": "string", "description": "Start date-time as local time WITHOUT offset or Z (e.g. 2026-03-15T22:30:00). Optional for: calendar_event." },
-          "endTime": { "type": "string", "description": "End date-time as local time WITHOUT offset or Z. Optional for: calendar_event." },
-          "timeZone": { "type": "string", "description": "IANA timezone. Optional for: calendar_event." },
-          "isAllDay": { "type": "boolean", "description": "All-day event flag. Optional for: calendar_event." },
-          "location": { "type": "string", "description": "Event location. Optional for: calendar_event." },
-          "url": { "type": "string", "description": "Associated URL. Optional for: calendar_event." },
-          "rrule": { "type": "string", "description": "RRULE recurrence string. Optional for: calendar_event." },
-          "editMode": { "type": "string", "enum": ["AllEvents", "ThisEvent", "ThisAndFuture"], "description": "For calendar_event recurring series." },
-          "occurrenceDate": { "type": "string", "description": "ISO 8601 UTC occurrence date. Required when editMode is ThisEvent or ThisAndFuture." },
-          "reminderId": { "type": "string", "description": "Reminder ID. Required for: reminder." },
-          "name": { "type": "string", "description": "Display name. Optional for: task_list, file, directory, album, calendar." },
-          "taskListId": { "type": "string", "description": "Task list ID. Required for: task_list." }
+          "type": {
+            "type": "string",
+            "enum": [
+              "task",
+              "task_list",
+              "task_comment",
+              "file",
+              "directory",
+              "album",
+              "album_photos",
+              "active_album",
+              "calendar",
+              "calendar_event",
+              "calendar_subscription",
+              "email",
+              "reminder"
+            ],
+            "description": "The entity type to update."
+          },
+          "taskId": {
+            "type": "string",
+            "description": "Task ID. Required for: task."
+          },
+          "taskListId": {
+            "type": "string",
+            "description": "Task list ID. Required for: task_list."
+          },
+          "fileId": {
+            "type": "string",
+            "description": "File ID. Required for: file."
+          },
+          "directoryId": {
+            "type": "string",
+            "description": "Directory ID. Required for: directory. Optional for: file (move file to directory)."
+          },
+          "albumId": {
+            "type": "string",
+            "description": "Album ID. Required for: album, album_photos, active_album."
+          },
+          "commentId": {
+            "type": "string",
+            "description": "Comment ID. Required for: task_comment."
+          },
+          "text": {
+            "type": "string",
+            "description": "Updated text content. Required for: task_comment."
+          },
+          "title": {
+            "type": "string",
+            "description": "Title. Optional for: task."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name. Optional for: task_list, file, directory, album, calendar."
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description. Use for any context beyond a short title — user-provided detail, specifications, sub-items. Strongly recommended when the user provides rich text. Applies to: task, album, calendar, calendar_event. Supports annotations: @[DisplayName](user:userId) for user mentions, #[DisplayName](EntityType:entityId) for entity references (e.g. #[README.md](FileItem:abc-123))."
+          },
+          "status": {
+            "type": "string",
+            "description": "Status value. Optional for: task (NeedsAction=to do, InProcess=in progress, Completed=done, Cancelled=cancelled), calendar_event (Confirmed, Tentative, Cancelled). Use internal values here, friendly names when talking to user."
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9,
+            "description": "Priority from 0 (undefined) to 9 (lowest). 1 = highest. Optional for: task."
+          },
+          "dueDate": {
+            "type": "string",
+            "description": "Due date as ISO 8601 (e.g. 2026-03-15T00:00:00Z). Optional for: task."
+          },
+          "percentComplete": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Completion percentage 0-100. Optional for: task."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tag list. Optional for: task. Call get_task_tags first to reuse existing tags and maintain consistent casing."
+          },
+          "parentDirectoryId": {
+            "type": "string",
+            "description": "Move to parent directory. Optional for: directory."
+          },
+          "coverPhotoId": {
+            "type": "string",
+            "description": "Cover photo file ID. Optional for: album."
+          },
+          "fileItemIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Ordered list of file IDs for reordering. Required for: album_photos."
+          },
+          "expiresInHours": {
+            "type": "integer",
+            "description": "Hours until active album expires. Optional for: active_album."
+          },
+          "calendarId": {
+            "type": "string",
+            "description": "Calendar ID. Required for: calendar."
+          },
+          "calendarSubscriptionId": {
+            "type": "string",
+            "description": "Calendar subscription ID. Required for: calendar_subscription."
+          },
+          "syncIntervalMinutes": {
+            "type": "integer",
+            "description": "Re-sync frequency in minutes (minimum 60). Optional for: calendar_subscription."
+          },
+          "eventId": {
+            "type": "string",
+            "description": "Calendar event ID. Required for: calendar_event."
+          },
+          "startTime": {
+            "type": "string",
+            "description": "Start date-time as local time WITHOUT timezone offset or Z suffix (e.g. 2026-03-15T22:30:00). The timezone is provided separately via the timeZone parameter. Optional for: calendar_event."
+          },
+          "endTime": {
+            "type": "string",
+            "description": "End date-time as local time WITHOUT timezone offset or Z suffix (e.g. 2026-03-15T23:30:00). The timezone is provided separately via the timeZone parameter. Optional for: calendar_event."
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "IANA timezone (e.g. America/New_York). Optional for: calendar_event."
+          },
+          "rrule": {
+            "type": "string",
+            "description": "RRULE recurrence string. Optional for: calendar_event."
+          },
+          "isAllDay": {
+            "type": "boolean",
+            "description": "All-day event flag. Optional for: calendar_event."
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex color code. Optional for: calendar."
+          },
+          "location": {
+            "type": "string",
+            "description": "Event location. Optional for: calendar_event."
+          },
+          "url": {
+            "type": "string",
+            "description": "Associated URL. Optional for: calendar_event."
+          },
+          "visibility": {
+            "type": "string",
+            "description": "Event visibility (Public/Private/Confidential). Optional for: calendar_event."
+          },
+          "editMode": {
+            "type": "string",
+            "enum": [
+              "AllEvents",
+              "ThisEvent",
+              "ThisAndFuture"
+            ],
+            "description": "For calendar_event recurring series (case-insensitive). AllEvents (default) edits the whole series, ThisEvent edits only the occurrence on occurrenceDate, ThisAndFuture edits that occurrence and all after."
+          },
+          "occurrenceDate": {
+            "type": "string",
+            "description": "ISO 8601 UTC occurrence date. Required when editMode is ThisEvent or ThisAndFuture."
+          },
+          "emailMessageId": {
+            "type": "string",
+            "description": "Email message ID. Required for: email."
+          },
+          "isRead": {
+            "type": "boolean",
+            "description": "Mark email as read (true) or unread (false). Optional for: email."
+          },
+          "toggleStar": {
+            "type": "boolean",
+            "description": "Toggle the starred state of the email. Optional for: email."
+          },
+          "reminderId": {
+            "type": "string",
+            "description": "Reminder ID. Required for: reminder."
+          },
+          "remindAt": {
+            "type": "string",
+            "description": "New reminder time, UTC ISO 8601 with a Z suffix (e.g. 2026-06-26T22:00:00Z). Optional for: reminder."
+          },
+          "revision": {
+            "type": "integer",
+            "description": "Expected current revision of the entity (from a prior read); the write is rejected if the entity changed since. Required for revisioned entity types: task, task_list, task_comment, file, directory, album, calendar, calendar_event, reminder. Obtain it from a get for entities that support get; for reminder and task_comment (which have no get), the list result carries the revision — read it from there."
+          },
+          "clearFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Field names to reset to empty (null / 0 / empty list). Valid names by type — task: dueDate, startDate, priority, percentComplete, description, tags, assignee; calendar_event: description, location, url, rrule; calendar: description; album: description, coverPhoto; reminder: note, linkedTask; file: directory; directory: parent. You cannot list a field you are also setting in the same call."
+          }
         },
-        "required": ["type"]
+        "required": [
+          "type"
+        ]
       }
     },
     {
@@ -127,16 +680,140 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "type": { "type": "string", "enum": ["task", "task_list", "task_comment", "task_list_member", "file", "directory", "album", "album_photo", "album_member", "share_link", "active_album", "file_share", "calendar", "calendar_event", "calendar_member", "event_attendee", "feed_subscription", "custom_feed", "email", "email_folder", "reminder"], "description": "The entity type to delete." },
-          "taskId": { "type": "string", "description": "Task ID. Required for: task." },
-          "taskListId": { "type": "string", "description": "Task list ID. Required for: task_list." },
-          "calendarId": { "type": "string", "description": "Calendar ID. Required for: calendar." },
-          "eventId": { "type": "string", "description": "Calendar event ID. Required for: calendar_event." },
-          "editMode": { "type": "string", "enum": ["AllEvents", "ThisEvent", "ThisAndFuture"], "description": "For calendar_event recurring series." },
-          "occurrenceDate": { "type": "string", "description": "ISO 8601 UTC occurrence date. Required when editMode is ThisEvent or ThisAndFuture." },
-          "reminderId": { "type": "string", "description": "Reminder ID. Required for: reminder." }
+          "type": {
+            "type": "string",
+            "enum": [
+              "task",
+              "task_list",
+              "task_comment",
+              "task_list_member",
+              "file",
+              "directory",
+              "album",
+              "album_photo",
+              "album_member",
+              "share_link",
+              "active_album",
+              "file_share",
+              "calendar",
+              "calendar_event",
+              "calendar_member",
+              "calendar_subscription",
+              "event_attendee",
+              "feed_subscription",
+              "custom_feed",
+              "email",
+              "email_folder",
+              "reminder",
+              "task_link"
+            ],
+            "description": "The entity type to delete."
+          },
+          "linkId": {
+            "type": "string",
+            "description": "Task link ID. Required for: task_link."
+          },
+          "taskId": {
+            "type": "string",
+            "description": "Task ID. Required for: task."
+          },
+          "taskListId": {
+            "type": "string",
+            "description": "Task list ID. Required for: task_list."
+          },
+          "commentId": {
+            "type": "string",
+            "description": "Comment ID. Required for: task_comment."
+          },
+          "memberId": {
+            "type": "string",
+            "description": "Membership ID. Required for: task_list_member, calendar_member."
+          },
+          "fileId": {
+            "type": "string",
+            "description": "File ID. Required for: file."
+          },
+          "directoryId": {
+            "type": "string",
+            "description": "Directory ID. Required for: directory."
+          },
+          "albumId": {
+            "type": "string",
+            "description": "Album ID. Required for: album, album_photo, album_member."
+          },
+          "fileItemId": {
+            "type": "string",
+            "description": "File item ID. Required for: album_photo."
+          },
+          "memberUserId": {
+            "type": "string",
+            "description": "User ID of the member to remove. Required for: album_member."
+          },
+          "shareLinkId": {
+            "type": "string",
+            "description": "Share link ID. Required for: share_link."
+          },
+          "fileShareId": {
+            "type": "string",
+            "description": "File share ID. Required for: file_share."
+          },
+          "calendarId": {
+            "type": "string",
+            "description": "Calendar ID. Required for: calendar."
+          },
+          "eventId": {
+            "type": "string",
+            "description": "Calendar event ID. Required for: calendar_event."
+          },
+          "editMode": {
+            "type": "string",
+            "enum": [
+              "AllEvents",
+              "ThisEvent",
+              "ThisAndFuture"
+            ],
+            "description": "For calendar_event recurring series (case-insensitive). AllEvents (default) deletes the whole series, ThisEvent deletes only the occurrence on occurrenceDate, ThisAndFuture deletes that occurrence and all after."
+          },
+          "occurrenceDate": {
+            "type": "string",
+            "description": "ISO 8601 UTC occurrence date. Required when editMode is ThisEvent or ThisAndFuture."
+          },
+          "attendeeId": {
+            "type": "string",
+            "description": "Event attendee ID. Required for: event_attendee."
+          },
+          "feedSubscriptionId": {
+            "type": "string",
+            "description": "Feed subscription ID. Required for: feed_subscription."
+          },
+          "calendarSubscriptionId": {
+            "type": "string",
+            "description": "Calendar subscription ID. Required for: calendar_subscription."
+          },
+          "feedSourceId": {
+            "type": "string",
+            "description": "Feed source ID. Required for: custom_feed."
+          },
+          "emailMessageId": {
+            "type": "string",
+            "description": "Email message ID. Required for: email."
+          },
+          "folderId": {
+            "type": "string",
+            "description": "Email folder ID. Required for: email_folder."
+          },
+          "reminderId": {
+            "type": "string",
+            "description": "Reminder ID. Required for: reminder."
+          },
+          "revision": {
+            "type": "integer",
+            "description": "Expected current revision of the entity (from a prior read); the write is rejected if the entity changed since. Required for revisioned entity types: task, task_list, task_comment, file, directory, album, calendar, calendar_event, calendar_subscription, feed_subscription, reminder, share_link, task_link. Obtain it from a get for entities that support get; for reminder and task_comment (which have no get), the list result carries the revision — read it from there."
+          }
         },
-        "required": ["type"]
+        "required": [
+          "type"
+        ]
       }
     },
     {
@@ -145,115 +822,46 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "query": { "type": "string", "description": "Search text. Supports fuzzy matching — 'Jenn' will match 'Jennifer'." },
-          "types": { "type": "string", "description": "Comma-separated entity types to filter: TaskItem, TaskList, CalendarEvent, Calendar, FileItem, DirectoryItem, Album. Omit to search all types." }
+          "query": {
+            "type": "string",
+            "description": "Search text. Supports fuzzy matching — 'Jenn' will match 'Jennifer'."
+          },
+          "types": {
+            "type": "string",
+            "description": "Comma-separated entity types to filter results: TaskItem, TaskList, CalendarEvent, Calendar, FileItem, DirectoryItem, Album. Omit to search all types."
+          }
         },
-        "required": ["query"]
+        "required": [
+          "query"
+        ]
       }
     },
     {
       "name": "get_task_tags",
       "description": "Return the user's distinct tags across all tasks. Call this before creating or updating tasks with tags to reuse existing tags and maintain consistent casing.",
-      "inputSchema": { "type": "object", "properties": {} }
-    },
-    {
-      "name": "get_user_preferences",
-      "description": "Get the user's personal preferences and profile information, grouped by category (identity, communication, schedule, family, interests, agenda).",
       "inputSchema": {
         "type": "object",
-        "properties": {
-          "category": { "type": "string", "enum": ["identity", "communication", "schedule", "family", "interests", "agenda"], "description": "Filter to a specific category. Omit to get all." }
-        }
+        "properties": {},
+        "additionalProperties": false
       }
     },
     {
-      "name": "set_user_preferences",
-      "description": "Save or update the user's personal preferences (identity, communication, schedule, family, interests, agenda).",
+      "name": "rank_focus_tasks",
+      "description": "Return the user's active tasks ranked by what to focus on next, each with a short reason. Set briefingScope to true to restrict to briefing-worthy tasks (assigned to the user, due-dated, or high-priority).",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "preferences": { "type": "array", "description": "Preferences to create or update.", "items": { "type": "object", "properties": { "category": { "type": "string", "enum": ["identity", "communication", "schedule", "family", "interests", "agenda"] }, "key": { "type": "string" }, "value": { "type": "string" } }, "required": ["category", "key", "value"] } },
-          "delete_keys": { "type": "array", "description": "Preferences to delete.", "items": { "type": "object", "properties": { "category": { "type": "string", "enum": ["identity", "communication", "schedule", "family", "interests", "agenda"] }, "key": { "type": "string" } }, "required": ["category", "key"] } }
-        }
-      }
-    },
-    {
-      "name": "list_notifications",
-      "description": "List the current user's active notifications. Optionally filter by notification type. Returns up to 50 notifications ordered by creation date (newest first).",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "type": { "type": "string", "enum": ["TaskDueSoon", "CalendarEventReminder", "ShareLinkExpiring", "ShareLinkExpired", "Mention", "TaskAssigned", "TaskListShared", "CalendarInviteReceived", "TaskCommentAdded", "FileShared"], "description": "Filter by notification type. Omit for all types." },
-          "limit": { "type": "integer", "default": 25, "maximum": 50, "description": "Maximum number of results. Clamped to 50." }
-        }
-      }
-    },
-    {
-      "name": "snooze_reminder",
-      "description": "Snooze a fired reminder for the specified number of minutes (default 15).",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "reminderId": { "type": "string", "description": "The reminder ID to snooze." },
-          "minutes": { "type": "integer", "minimum": 1, "maximum": 1440, "default": 15, "description": "Number of minutes to snooze." }
+          "briefingScope": {
+            "type": "boolean",
+            "description": "Restrict to briefing-worthy tasks (assigned to the user, due-dated, or high-priority)."
+          },
+          "dueBeforeUtc": {
+            "type": "string",
+            "format": "date-time",
+            "description": "UTC cutoff for the due-dated arm of the briefing scope. Ignored unless briefingScope is true."
+          }
         },
-        "required": ["reminderId"]
-      }
-    },
-    {
-      "name": "dismiss_reminder",
-      "description": "Dismiss a fired reminder so it disappears from the user's notification drawer.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "reminderId": { "type": "string", "description": "The reminder ID to dismiss." }
-        },
-        "required": ["reminderId"]
-      }
-    },
-    {
-      "name": "send_email",
-      "description": "Send a new email from the user's mailbox. Specify recipients, subject, and body.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "to": { "type": "array", "items": { "type": "string" }, "description": "List of recipient email addresses. Required." },
-          "subject": { "type": "string", "description": "Email subject line. Required." },
-          "bodyText": { "type": "string", "description": "Plain text email body. Required." },
-          "bodyHtml": { "type": "string", "description": "HTML email body. Optional." },
-          "cc": { "type": "array", "items": { "type": "string" }, "description": "List of CC email addresses. Optional." },
-          "bcc": { "type": "array", "items": { "type": "string" }, "description": "List of BCC email addresses. Optional." }
-        },
-        "required": ["to", "subject", "bodyText"]
-      }
-    },
-    {
-      "name": "reply_to_email",
-      "description": "Reply to an existing email message. Automatically builds To/Cc lists from the original message.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "originalMessageId": { "type": "string", "description": "ID of the email message to reply to. Required." },
-          "bodyText": { "type": "string", "description": "Plain text reply body. Required." },
-          "bodyHtml": { "type": "string", "description": "HTML reply body. Optional." },
-          "isReplyAll": { "type": "boolean", "default": false, "description": "Reply to all recipients (true) or just the sender (false)." }
-        },
-        "required": ["originalMessageId", "bodyText"]
-      }
-    },
-    {
-      "name": "forward_email",
-      "description": "Forward an existing email message to new recipients. Includes original message headers and content.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "originalMessageId": { "type": "string", "description": "ID of the email message to forward. Required." },
-          "to": { "type": "array", "items": { "type": "string" }, "description": "List of recipient email addresses. Required." },
-          "bodyText": { "type": "string", "description": "Plain text body to prepend to the forwarded message. Required." },
-          "bodyHtml": { "type": "string", "description": "HTML body to prepend. Optional." },
-          "cc": { "type": "array", "items": { "type": "string" }, "description": "List of CC email addresses. Optional." }
-        },
-        "required": ["originalMessageId", "to", "bodyText"]
+        "additionalProperties": false
       }
     },
     {
@@ -262,13 +870,334 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "name": { "type": "string", "description": "Filename with extension (e.g. 'report.pdf'). Used for display and MIME type detection." },
-          "content": { "type": "string", "description": "Base64-encoded file content." },
-          "directoryId": { "type": "string", "description": "Target directory ID. Omit to place file in user's root." },
-          "mimeType": { "type": "string", "description": "MIME type override. Auto-detected from filename if omitted." },
-          "tags": { "type": "array", "items": { "type": "string" }, "description": "Tags to apply to the file." }
+          "name": {
+            "type": "string",
+            "description": "Filename with extension (e.g. 'report.pdf', 'photo.jpg'). Used for display and MIME type detection."
+          },
+          "content": {
+            "type": "string",
+            "description": "Base64-encoded file content."
+          },
+          "mimeType": {
+            "type": "string",
+            "description": "MIME type override. Auto-detected from filename extension if omitted."
+          },
+          "directoryId": {
+            "type": "string",
+            "description": "Target directory ID. Omit to place file in user's root."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Tags to apply to the file."
+          }
         },
-        "required": ["name", "content"]
+        "required": [
+          "name",
+          "content"
+        ]
+      }
+    },
+    {
+      "name": "send_email",
+      "description": "Send a new email from the user's mailbox. Specify recipients, subject, and body.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "to": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of recipient email addresses. Required."
+          },
+          "cc": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of CC email addresses. Optional."
+          },
+          "bcc": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of BCC email addresses. Optional."
+          },
+          "subject": {
+            "type": "string",
+            "description": "Email subject line. Required."
+          },
+          "bodyText": {
+            "type": "string",
+            "description": "Plain text email body. Required."
+          },
+          "bodyHtml": {
+            "type": "string",
+            "description": "HTML email body. Optional — provide for rich formatting."
+          }
+        },
+        "required": [
+          "to",
+          "subject",
+          "bodyText"
+        ]
+      }
+    },
+    {
+      "name": "reply_to_email",
+      "description": "Reply to an existing email message. Automatically builds To/Cc lists from the original message.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "originalMessageId": {
+            "type": "string",
+            "description": "ID of the email message to reply to. Required."
+          },
+          "bodyText": {
+            "type": "string",
+            "description": "Plain text reply body. Required."
+          },
+          "bodyHtml": {
+            "type": "string",
+            "description": "HTML reply body. Optional — provide for rich formatting."
+          },
+          "isReplyAll": {
+            "type": "boolean",
+            "default": false,
+            "description": "Reply to all recipients (true) or just the sender (false). Defaults to false."
+          }
+        },
+        "required": [
+          "originalMessageId",
+          "bodyText"
+        ]
+      }
+    },
+    {
+      "name": "forward_email",
+      "description": "Forward an existing email message to new recipients. Includes original message headers and content.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "originalMessageId": {
+            "type": "string",
+            "description": "ID of the email message to forward. Required."
+          },
+          "to": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of recipient email addresses. Required."
+          },
+          "cc": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of CC email addresses. Optional."
+          },
+          "bodyText": {
+            "type": "string",
+            "description": "Plain text body to prepend to the forwarded message. Required."
+          },
+          "bodyHtml": {
+            "type": "string",
+            "description": "HTML body to prepend to the forwarded message. Optional."
+          }
+        },
+        "required": [
+          "originalMessageId",
+          "to",
+          "bodyText"
+        ]
+      }
+    },
+    {
+      "name": "summarize_email_thread",
+      "description": "Summarize an email thread. Returns AI-generated summaries of each message and an overall thread summary. Use this to quickly understand long email conversations.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "threadId": {
+            "type": "string",
+            "description": "Email thread ID to summarize. Required."
+          }
+        },
+        "required": [
+          "threadId"
+        ]
+      }
+    },
+    {
+      "name": "get_user_preferences",
+      "description": "Get the user's personal preferences and profile information. Returns preferences grouped by category: identity (name, sign-off), communication (writing tone, agent output style), schedule (dinner time, work hours), family (spouse, children, pets), interests (hobbies, favorite food), agenda (daily_closer). Use this to personalize emails, messages, and responses. Optionally filter by category.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Filter to a specific category. Valid values: identity, communication, schedule, family, interests, agenda. Omit to get all preferences.",
+            "enum": [
+              "identity",
+              "communication",
+              "schedule",
+              "family",
+              "interests",
+              "agenda"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "set_user_preferences",
+      "description": "Save or update the user's personal preferences. Use when the user shares personal information like their name, writing style, family members, hobbies, or daily routine. Categories: identity, communication, schedule, family, interests, agenda.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "preferences": {
+            "type": "array",
+            "description": "Preferences to create or update.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "category": {
+                  "type": "string",
+                  "description": "Category: identity, communication, schedule, family, interests, agenda.",
+                  "enum": [
+                    "identity",
+                    "communication",
+                    "schedule",
+                    "family",
+                    "interests",
+                    "agenda"
+                  ]
+                },
+                "key": {
+                  "type": "string",
+                  "description": "Preference key in snake_case (e.g. 'name', 'writing_tone', 'dinner_time', 'spouse')."
+                },
+                "value": {
+                  "type": "string",
+                  "description": "The preference value."
+                }
+              },
+              "required": [
+                "category",
+                "key",
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "delete_keys": {
+            "type": "array",
+            "description": "Preferences to delete.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "identity",
+                    "communication",
+                    "schedule",
+                    "family",
+                    "interests",
+                    "agenda"
+                  ]
+                },
+                "key": {
+                  "type": "string",
+                  "description": "Key to delete."
+                }
+              },
+              "required": [
+                "category",
+                "key"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "list_notifications",
+      "description": "List the current user's active notifications. Optionally filter by notification type. Returns up to 50 notifications ordered by creation date (newest first).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "TaskDueSoon",
+              "CalendarEventReminder",
+              "ShareLinkExpiring",
+              "ShareLinkExpired",
+              "Mention",
+              "TaskAssigned",
+              "TaskListShared",
+              "CalendarInviteReceived",
+              "TaskCommentAdded",
+              "FileShared"
+            ],
+            "description": "Filter by notification type. Omit for all types."
+          },
+          "limit": {
+            "type": "integer",
+            "default": 25,
+            "maximum": 50,
+            "description": "Maximum number of results to return. Clamped to 50."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "snooze_reminder",
+      "description": "Snooze a fired reminder for the specified number of minutes (default 15).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "reminderId": {
+            "type": "string",
+            "description": "The reminder ID to snooze."
+          },
+          "minutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440,
+            "default": 15,
+            "description": "Number of minutes to snooze (1-1440, default 15)."
+          }
+        },
+        "required": [
+          "reminderId"
+        ]
+      }
+    },
+    {
+      "name": "dismiss_reminder",
+      "description": "Dismiss a fired reminder so it disappears from the user's notification drawer.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "reminderId": {
+            "type": "string",
+            "description": "The reminder ID to dismiss."
+          }
+        },
+        "required": [
+          "reminderId"
+        ]
       }
     }
   ]

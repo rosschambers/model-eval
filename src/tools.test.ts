@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getToolDefs } from './tools.js';
+import fixture from '../fixtures/tools-fixture.json' with { type: 'json' };
 
 describe('getToolDefs', () => {
   it('includes the core MCP fixture tools', () => {
@@ -27,7 +28,14 @@ describe('getToolDefs', () => {
     }
   });
 
-  it('has length equal to fixture count plus two (18)', () => {
-    expect(getToolDefs().length).toBe(18);
+  it('has length equal to fixture count plus the two Hugo code tools', () => {
+    expect(getToolDefs().length).toBe(fixture.tools.length + 2);
+  });
+
+  it('exposes the live update schema, including reminder rescheduling and revisions', () => {
+    const update = getToolDefs().find((t) => t.function.name === 'update')!;
+    const properties = Object.keys((update.function.parameters as any).properties);
+    expect(properties).toContain('remindAt');
+    expect(properties).toContain('revision');
   });
 });

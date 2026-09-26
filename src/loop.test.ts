@@ -288,3 +288,46 @@ describe('runCase', () => {
     expect(messages[messages.length - 1]).toEqual({ role: 'user', content: 'do it' });
   });
 });
+
+describe('runCase argument checking (production contract)', () => {
+  const tools: any[] = [
+    {
+      type: 'function',
+      function: {
+        name: 'get',
+        parameters: { type: 'object', properties: { type: {}, id: {}, occurrenceDate: {} }, required: ['type', 'id'] },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'list',
+        parameters: { type: 'object', properties: { type: {}, start: {}, end: {}, cursor: {} }, required: ['type'] },
+      },
+    },
+  ];
+  const done = { choices: [{ message: { role: 'assistant', content: 'ok' } }] };
+
+  it("answers a call missing a required argument with production's error instead of the mock", async () => {
+    let mockCalled = false;
+    const { client, calls } = stubClient([toolCallMessage('get', { type: 'task', taskId: 't1' }), done]);
+    const c = baseCase({ mocks: { get: () => { mockCalled = true; return { id: 't1' }; } } });
+
+    const transcript = await runCase(client, 'model-x', c, SYS, tools);
+
+    expect(mockCalled).toBe(false);
+    const toolMessage = calls[1].messages.find((m: any) => m.role === 'tool');
+    expect(JSON.parse(toolMessage.content)).toEqual({ error: "Missing required parameter: 'id'" });
+    expect(transcript.toolCalls[0]!.resultIsError).toBe(true);
+    expect(transcript.toolCalls[0]!.unknownArguments).toEqual(['taskId']);
+  });
+
+  it('records arguments the tool does not define but still runs the call, as production ignores them', async () => {
+    const { client } = stubClient([toolCallMessage('list', { type: 'calendar_events', startTime: 'x', endTime: 'y' }), done]);
+
+    const transcript = await runCase(client, 'model-x', baseCase(), SYS, tools);
+
+    expect(transcript.toolCalls[0]!.resultIsError).toBeUndefined();
+    expect(transcript.toolCalls[0]!.unknownArguments).toEqual(['startTime', 'endTime']);
+  });
+});

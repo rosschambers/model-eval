@@ -19,6 +19,10 @@ export interface ToolCallRecord {
   // The `nextCursor` value parsed from this call's tool result, if the result was
   // a JSON object carrying one (string while pages remain, null when exhausted).
   resultNextCursor?: string | null;
+  // Argument names the tool's schema does not define. Production ignores them
+  // silently (so a filter the model thinks it applied never applies); recorded so
+  // results show the drift even when the case passes.
+  unknownArguments?: string[];
 }
 
 export interface Transcript {

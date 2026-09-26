@@ -111,6 +111,16 @@ export const MODELS: ModelConfig[] = [
     kind: 'local',
   },
   {
+    // crucible v7: the anchor trained on corpus-v7 (690 traces: grounded production-format clocks,
+    // live tool-argument contract, 109 targeted golds, 17 real Hugo episodes). Serve on 8090.
+    id: 'crucible-9b-v7',
+    label: 'crucible v7 Qwen3.5-9B corpus-v7 (frame:8090)',
+    baseURL: 'http://frame:8090/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'crucible-9b-v7-q5_k_m.gguf',
+    kind: 'local',
+  },
+  {
     // crucible v6 candidate: Ornith-1.5-9B (dense qwen35, MIT). Same recipe/serve as the anchor.
     id: 'ornith-v6',
     label: 'crucible v6 Ornith-1.5-9B (frame:8096)',

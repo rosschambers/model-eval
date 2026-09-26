@@ -37,6 +37,9 @@ describe('murmur8 trailing user-context', () => {
     expect(buildMurmur8UserContext()).toBe(
       '<user-context timezone="America/Detroit">\n' +
         'Current local time: Friday, June 26, 2026 2:00 PM. Current UTC time: 2026-06-26T18:00:00Z.\n' +
+        'Next 7 days: Friday 2026-06-26 (today), Saturday 2026-06-27 (tomorrow), ' +
+        'Sunday 2026-06-28, Monday 2026-06-29, Tuesday 2026-06-30, Wednesday 2026-07-01, ' +
+        'Thursday 2026-07-02.\n' +
         '</user-context>',
     );
   });

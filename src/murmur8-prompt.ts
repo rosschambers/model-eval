@@ -7,6 +7,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { NOW_UTC_ISO, USER_TIMEZONE, pinnedLocalTime } from './pinned-clock.js';
+import { buildWeekTable } from './week-table.js';
 
 // The murmur8 PORTAL agent's live system prompt is the `AI:SystemPrompt` string
 // inside the API's appsettings.json. Its location MUST be provided via the
@@ -72,14 +73,18 @@ export function buildMurmur8PortalPrompt(): string {
  * to every LLM call, after history and screen-context, for KV-cache reuse
  * (`Murmur8.Application/AI/ChatMessageBuilder.cs::BuildUserContextMessage`,
  * C# formats `dddd, MMMM d, yyyy h:mm tt` and `yyyy-MM-ddTHH:mm:ssZ`), filled
- * from the pinned benchmark clock.
+ * from the pinned benchmark clock, plus the trailing "Next 7 days" week table
+ * (see week-table.ts) so a small model reads bare weekdays instead of computing
+ * them.
  */
 export function buildMurmur8UserContext(): string {
   // C#'s `dddd, MMMM d, yyyy h:mm tt` has no " at " between date and time.
   const localNow = pinnedLocalTime().replace(' at ', ' ');
+  const weekTable = buildWeekTable(NOW_UTC_ISO, USER_TIMEZONE);
   return (
     `<user-context timezone="${USER_TIMEZONE}">\n` +
     `Current local time: ${localNow}. Current UTC time: ${NOW_UTC_ISO}.\n` +
+    `${weekTable}\n` +
     '</user-context>'
   );
 }

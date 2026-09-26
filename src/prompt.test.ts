@@ -90,6 +90,35 @@ describe('buildUserMessage', () => {
     });
   });
 
+  // Production shape after the weekday-lookup-table change: the agent node's `text`
+  // template gains one more trailing line, `{{ $json.weekTable }}`.
+  const PRODUCTION_WORKFLOW_WITH_WEEK_TABLE =
+    'const HUGO_SYSTEM_PROMPT = `You are Hugo. Read the time context at the end of the request.`;\n' +
+    'const agent = node({ parameters: {\n' +
+    '  text: expr("{{ $json.userPrompt }}\\n\\n--- REQUEST CONTEXT ---\\nCurrent time (UTC): {{ $json.nowUtcIso }}\\nCurrent time (user local): {{ $json.nowLocal }}\\nUser timezone: {{ $json.userTimezone }}\\n{{ $json.weekTable }}"),\n' +
+    '} });\n';
+
+  it('fills {{ $json.weekTable }} with the pinned-clock week table, as the last line of REQUEST CONTEXT', () => {
+    withWorkflow(PRODUCTION_WORKFLOW_WITH_WEEK_TABLE, () => {
+      const message = buildUserMessage('remind me to call mom at 6pm');
+
+      expect(message.endsWith(
+        'User timezone: America/Detroit\n' +
+          'Next 7 days: Friday 2026-06-26 (today), Saturday 2026-06-27 (tomorrow), ' +
+          'Sunday 2026-06-28, Monday 2026-06-29, Tuesday 2026-06-30, Wednesday 2026-07-01, ' +
+          'Thursday 2026-07-02.',
+      )).toBe(true);
+      expect(message).not.toContain('{{');
+    });
+  });
+
+  it('leaves a workflow without the weekTable placeholder unchanged (the existing REQUEST CONTEXT template)', () => {
+    withWorkflow(PRODUCTION_WORKFLOW, () => {
+      const message = buildUserMessage('remind me to call mom at 6pm');
+      expect(message).not.toContain('Next 7 days:');
+    });
+  });
+
   it('returns the sms unchanged for a legacy workflow whose system prompt carries the time', () => {
     withWorkflow('const HUGO_SYSTEM_PROMPT = `Now: {{ $json.nowLocal }}`;', () => {
       expect(buildUserMessage('what is on today')).toBe('what is on today');

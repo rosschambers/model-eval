@@ -66,6 +66,37 @@ describe('parseArgs', () => {
     );
     expect(parseArgs(['run', 'owner/repo']).baseline).toBeUndefined();
   });
+
+  describe('--temperature', () => {
+    it('leaves temperature undefined when the flag is absent, so no field is sent (server default)', () => {
+      expect(parseArgs(['run', 'owner/repo']).temperature).toBeUndefined();
+    });
+
+    it('parses a valid temperature into a number', () => {
+      expect(parseArgs(['run', 'owner/repo', '--temperature', '0.7']).temperature).toBe(0.7);
+    });
+
+    it('accepts the boundary values 0 and 2', () => {
+      expect(parseArgs(['run', 'owner/repo', '--temperature', '0']).temperature).toBe(0);
+      expect(parseArgs(['run', 'owner/repo', '--temperature', '2']).temperature).toBe(2);
+    });
+
+    it('throws a clear error for a non-numeric temperature', () => {
+      expect(() => parseArgs(['run', 'owner/repo', '--temperature', 'hot'])).toThrow(/--temperature/);
+    });
+
+    it('throws a clear error for a temperature below 0', () => {
+      expect(() => parseArgs(['run', 'owner/repo', '--temperature', '-0.1'])).toThrow(/between 0 and 2/);
+    });
+
+    it('throws a clear error for a temperature above 2', () => {
+      expect(() => parseArgs(['run', 'owner/repo', '--temperature', '2.1'])).toThrow(/between 0 and 2/);
+    });
+
+    it('throws a clear error for a non-finite temperature', () => {
+      expect(() => parseArgs(['run', 'owner/repo', '--temperature', 'Infinity'])).toThrow(/between 0 and 2/);
+    });
+  });
 });
 
 function fakeRecord(model: string, over: Partial<RawRecord> = {}): RawRecord {
@@ -86,6 +117,7 @@ interface Spy {
   serveCalls: number;
   stopCalls: number[];
   runModels: string[];
+  runProfilesOpts: { caseId?: string; temperature?: number }[];
   writes: Record<string, boolean>;
   writeRawRecords: RawRecord[];
   writeSummaryRecords: RawRecord[];
@@ -99,6 +131,7 @@ function makeSpy(): Spy {
     serveCalls: 0,
     stopCalls: [],
     runModels: [],
+    runProfilesOpts: [],
     writes: { raw: false, scores: false, summary: false, bundle: false },
     writeRawRecords: [],
     writeSummaryRecords: [],
@@ -117,8 +150,9 @@ function makeSpy(): Spy {
     stopOnFrame: async (port: number) => {
       spy.stopCalls.push(port);
     },
-    runProfiles: async (models: ModelConfig[]) => {
+    runProfiles: async (models: ModelConfig[], _profiles, opts) => {
       spy.runModels = models.map((m) => m.id);
+      spy.runProfilesOpts.push(opts as { caseId?: string; temperature?: number });
       return models.map((m) => fakeRecord(m.id));
     },
     writeRaw: (_dir, records) => {
@@ -155,6 +189,24 @@ function makeSpy(): Spy {
   };
   return spy;
 }
+
+describe('runCommand temperature', () => {
+  it('forwards the parsed temperature through to runProfiles', async () => {
+    const spy = makeSpy();
+    const args: ParsedArgs = { command: 'run', hfSpec: 'owner/repo', keep: false, temperature: 0.3 };
+    await runCommand(args, spy.deps);
+
+    expect(spy.runProfilesOpts[0].temperature).toBe(0.3);
+  });
+
+  it('leaves temperature undefined for runProfiles when not given, so no field is sent downstream', async () => {
+    const spy = makeSpy();
+    const args: ParsedArgs = { command: 'run', hfSpec: 'owner/repo', keep: false };
+    await runCommand(args, spy.deps);
+
+    expect(spy.runProfilesOpts[0].temperature).toBeUndefined();
+  });
+});
 
 describe('runCommand', () => {
   it('leaves the server running when --keep is set', async () => {

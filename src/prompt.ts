@@ -6,6 +6,7 @@
 
 import { readFileSync } from 'node:fs';
 import { NOW_UTC_ISO, USER_TIMEZONE, pinnedLocalTime } from './pinned-clock.js';
+import { buildWeekTable } from './week-table.js';
 
 // Matches the `const HUGO_SYSTEM_PROMPT = `...`` template literal in the workflow
 // source (the prompt was refactored out of an inline single-quoted `expr('...')`
@@ -86,7 +87,9 @@ function fillNowContext(template: string): string {
     .split(NOW_LOCAL_PLACEHOLDER)
     .join(pinnedLocalTime())
     .split('{{ $json.userTimezone }}')
-    .join(USER_TIMEZONE);
+    .join(USER_TIMEZONE)
+    .split('{{ $json.weekTable }}')
+    .join(buildWeekTable(NOW_UTC_ISO, USER_TIMEZONE));
 }
 
 /**

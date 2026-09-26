@@ -289,6 +289,31 @@ describe('runCase', () => {
   });
 });
 
+describe('runCase temperature', () => {
+  it('sends no temperature field when none is given (server default applies)', async () => {
+    const { client, calls } = stubClient([
+      { choices: [{ message: { role: 'assistant', content: 'hello' } }] },
+    ]);
+
+    await runCase(client, 'model-x', baseCase(), SYS, TOOLS);
+
+    expect(calls[0]).not.toHaveProperty('temperature');
+  });
+
+  it('includes the given temperature in every chat completion request body', async () => {
+    const { client, calls } = stubClient([
+      toolCallMessage('list', { type: 'calendars' }),
+      { choices: [{ message: { role: 'assistant', content: 'Done.' } }] },
+    ]);
+
+    await runCase(client, 'model-x', baseCase(), SYS, TOOLS, 0.3);
+
+    expect(calls).toHaveLength(2);
+    expect(calls[0].temperature).toBe(0.3);
+    expect(calls[1].temperature).toBe(0.3);
+  });
+});
+
 describe('runCase argument checking (production contract)', () => {
   const tools: any[] = [
     {

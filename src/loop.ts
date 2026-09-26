@@ -28,6 +28,7 @@ export async function runLoop(
   messages: any[],
   tools: any[],
   mocks: BenchCase['mocks'] = {},
+  temperature?: number,
 ): Promise<{ transcript: Transcript; messages: any[] }> {
   const toolCalls: ToolCallRecord[] = [];
   let finalText = '';
@@ -41,6 +42,7 @@ export async function runLoop(
       messages,
       tools,
       tool_choice: 'auto',
+      ...(temperature === undefined ? {} : { temperature }),
     });
     latencyMs += Date.now() - t0;
 
@@ -122,6 +124,7 @@ export async function runCase(
   c: BenchCase,
   sys: string,
   tools: any[],
+  temperature?: number,
 ): Promise<Transcript> {
   const messages: any[] = [{ role: 'system', content: sys }];
   for (const entry of c.history ?? []) {
@@ -136,6 +139,6 @@ export async function runCase(
     messages.push({ role: 'system', content: c.userContext });
   }
 
-  const { transcript } = await runLoop(client, modelName, messages, tools, c.mocks ?? {});
+  const { transcript } = await runLoop(client, modelName, messages, tools, c.mocks ?? {}, temperature);
   return transcript;
 }

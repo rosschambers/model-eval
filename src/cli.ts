@@ -25,12 +25,28 @@ export interface ParsedArgs {
   baseline?: string;
   keep: boolean;
   port?: number;
+  temperature?: number;
 }
 
 const USAGE =
-  'usage: model-eval run <hfSpec> [--profile a,b] [--case id] [--baseline haiku] [--keep]\n' +
+  'usage: model-eval run <hfSpec> [--profile a,b] [--case id] [--baseline haiku] [--temperature N] [--keep]\n' +
   '       model-eval serve <hfSpec> [--port N]\n' +
   '       model-eval stop --port N';
+
+/**
+ * Parse and validate the `--temperature` flag. Undefined when the flag is
+ * absent, so the caller sends no `temperature` field and the server default
+ * applies (current behavior). Throws loudly for a non-finite value or one
+ * outside the valid range [0, 2].
+ */
+function parseTemperature(raw: string | undefined): number | undefined {
+  if (raw === undefined) return undefined;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0 || value > 2) {
+    throw new Error(`--temperature must be a finite number between 0 and 2, got '${raw}'`);
+  }
+  return value;
+}
 
 function flagValue(argv: string[], flag: string): string | undefined {
   const index = argv.indexOf(flag);
@@ -51,13 +67,14 @@ export function parseArgs(argv: string[]): ParsedArgs {
   const profiles = profileRaw === undefined ? undefined : profileRaw.split(',').map((p) => p.trim());
   const caseId = flagValue(argv, '--case');
   const baseline = flagValue(argv, '--baseline');
+  const temperature = parseTemperature(flagValue(argv, '--temperature'));
 
   if (command === 'run' || command === 'serve') {
     const hfSpec = argv[1];
     if (!hfSpec || hfSpec.startsWith('--')) {
       throw new Error(`${command} requires a HuggingFace repo spec`);
     }
-    return { command, hfSpec, profiles, caseId, baseline, keep, port };
+    return { command, hfSpec, profiles, caseId, baseline, keep, port, temperature };
   }
 
   // stop
@@ -73,7 +90,7 @@ export interface RunDeps {
   runProfiles: (
     models: ModelConfig[],
     profiles: AgentProfile[],
-    opts: { caseId?: string },
+    opts: { caseId?: string; temperature?: number },
   ) => Promise<RawRecord[]>;
   writeRaw: (dir: URL | string, records: RawRecord[]) => void;
   writeScores: (dir: URL | string, records: RawRecord[]) => void;
@@ -156,7 +173,10 @@ export async function runCommand(args: ParsedArgs, deps: RunDeps): Promise<void>
     // Only mode 'live' serves and benchmarks the baseline; the pre-existing
     // baseline instance on frame is never started or stopped by us.
     const models = baseline.mode === 'live' ? [candidate, findModel(baseline.id)] : [candidate];
-    let records = await deps.runProfiles(models, profiles, { caseId: args.caseId });
+    let records = await deps.runProfiles(models, profiles, {
+      caseId: args.caseId,
+      temperature: args.temperature,
+    });
 
     let cachedIds = new Set<string>();
     if (baseline.mode === 'live') {

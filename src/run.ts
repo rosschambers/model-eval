@@ -44,6 +44,7 @@ interface RunProfileOptions {
   cases?: BenchCase[];
   repeat?: number;
   runner?: CaseRunner;
+  temperature?: number;
 }
 
 function parseFlag(argv: string[], flag: string): string | undefined {
@@ -81,7 +82,7 @@ export async function runOneProfile(
 
     for (let rep = 0; rep < repeat; rep++) {
       try {
-        const transcript = await runner(client, modelName, mergedCase, sys, tools);
+        const transcript = await runner(client, modelName, mergedCase, sys, tools, opts.temperature);
         const scores = scoreCase(transcript, c.expect);
         records.push({
           profile: profile.id,
@@ -126,7 +127,7 @@ function fileInDir(dir: URL | string, name: string): URL {
 export async function runProfiles(
   models: ModelConfig[],
   profiles: AgentProfile[],
-  opts: { caseId?: string; repeat?: number; runner?: CaseRunner } = {},
+  opts: { caseId?: string; repeat?: number; runner?: CaseRunner; temperature?: number } = {},
 ): Promise<RawRecord[]> {
   const all: RawRecord[] = [];
   for (const m of models) {
@@ -140,6 +141,7 @@ export async function runProfiles(
         cases,
         repeat: opts.repeat,
         runner: opts.runner,
+        temperature: opts.temperature,
       });
       for (const record of records) record.model = m.id;
       all.push(...records);

@@ -30,6 +30,7 @@ export type CaseRunner = (
   c: BenchCase,
   sys: string,
   tools: any[],
+  temperature?: number,
 ) => Promise<Transcript>;
 
 /** Concatenate two transcripts: calls and counters add, finalText is phase 2's. */
@@ -50,7 +51,7 @@ function combine(phase1: Transcript, phase2: Transcript): Transcript {
  * If the first phase does not fabricate, returns it unchanged.
  */
 export function withStructuralGuard(): CaseRunner {
-  return async (client, modelName, c, sys, tools): Promise<Transcript> => {
+  return async (client, modelName, c, sys, tools, temperature): Promise<Transcript> => {
     const messages: any[] = [{ role: 'system', content: sys }];
     for (const entry of c.history ?? []) {
       messages.push({ role: entry.role, content: entry.content });
@@ -63,6 +64,7 @@ export function withStructuralGuard(): CaseRunner {
       messages,
       tools,
       c.mocks ?? {},
+      temperature,
     );
 
     if (!isFabrication(phase1)) {
@@ -77,6 +79,7 @@ export function withStructuralGuard(): CaseRunner {
       afterPhase1,
       tools,
       c.mocks ?? {},
+      temperature,
     );
 
     return combine(phase1, phase2);
@@ -105,7 +108,7 @@ function buildVerifierSummary(c: BenchCase, phase1: Transcript): string {
  * verifier's final text and falling back to phase 1's if the verifier is empty.
  */
 export function withVerificationPass(): CaseRunner {
-  return async (client, modelName, c, sys, tools): Promise<Transcript> => {
+  return async (client, modelName, c, sys, tools, temperature): Promise<Transcript> => {
     const messages: any[] = [{ role: 'system', content: sys }];
     for (const entry of c.history ?? []) {
       messages.push({ role: entry.role, content: entry.content });
@@ -118,6 +121,7 @@ export function withVerificationPass(): CaseRunner {
       messages,
       tools,
       c.mocks ?? {},
+      temperature,
     );
 
     const verifierMessages: any[] = [
@@ -131,6 +135,7 @@ export function withVerificationPass(): CaseRunner {
       verifierMessages,
       tools,
       c.mocks ?? {},
+      temperature,
     );
 
     return {

@@ -77,9 +77,17 @@ export async function runOneProfile(
 
   for (const c of cases) {
     const mergedMocks = { ...profile.mockDefaults, ...(c.mocks ?? {}) };
-    const sms = profile.buildUserMessage ? profile.buildUserMessage(c.sms) : c.sms;
+    const wrap = profile.buildUserMessage;
+    const sms = wrap ? wrap(c.sms) : c.sms;
+    // Production memory stores each earlier user turn exactly as it was sent (n8n's Postgres chat
+    // memory keeps the full input text, REQUEST CONTEXT included), so history user turns get the same
+    // wrapping as the current one. Assistant turns are left as the case wrote them.
+    let history = c.history;
+    if (wrap && history) {
+      history = history.map((entry) => (entry.role === 'user' ? { ...entry, content: wrap(String(entry.content ?? '')) } : entry));
+    }
     const userContext = c.userContext ?? profile.buildTrailingUserContext?.();
-    const mergedCase: BenchCase = { ...c, sms, userContext, mocks: mergedMocks };
+    const mergedCase: BenchCase = { ...c, history, sms, userContext, mocks: mergedMocks };
 
     for (let rep = 0; rep < repeat; rep++) {
       try {

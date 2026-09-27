@@ -203,3 +203,24 @@ describe('withVerificationPass', () => {
     expect(transcript.finalText).toBe('Phase one reply.');
   });
 });
+
+describe('interventions replay history like runCase', () => {
+  const replayed = [
+    { role: 'user' as const, content: 'add eggs [ctx]' },
+    { role: 'assistant' as const, content: '', tool_calls: [{ id: 'h1', type: 'function' as const, function: { name: 'create', arguments: '{}' } }] },
+    { role: 'tool' as const, name: 'create', tool_call_id: 'h1', content: '[]' },
+    { role: 'assistant' as const, content: 'Added eggs.' },
+  ];
+
+  it('the structural guard sends the replayed history, tool messages included', async () => {
+    const { client, calls } = stubClient([finalResponse('Nothing to do.')]);
+    await withStructuralGuard()(client, 'model-x', baseCase({ replayedHistory: replayed }), SYS, TOOLS);
+    expect(calls[0].messages).toEqual([{ role: 'system', content: SYS }, ...replayed, { role: 'user', content: 'move my 3pm to 4pm' }]);
+  });
+
+  it('the verification pass sends the replayed history in phase one', async () => {
+    const { client, calls } = stubClient([finalResponse('Nothing to do.')]);
+    await withVerificationPass()(client, 'model-x', baseCase({ replayedHistory: replayed }), SYS, TOOLS);
+    expect(calls[0].messages).toEqual([{ role: 'system', content: SYS }, ...replayed, { role: 'user', content: 'move my 3pm to 4pm' }]);
+  });
+});

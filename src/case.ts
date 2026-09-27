@@ -6,9 +6,38 @@
 
 import type { MockMap } from './mock-engine.js';
 
-export interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
+/** One tool call the agent made in an earlier turn, with its arguments as the model emitted them. */
+export interface HistoryToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+/**
+ * One message of an earlier turn, in a surface-neutral authoring form. Each profile's
+ * `replayHistory` renders these into the exact messages its production memory replays
+ * (./history.ts). A tool message's `content` is the raw JSON the tool returned.
+ */
+export type HistoryMessage =
+  | { role: 'user'; content: string }
+  | { role: 'assistant'; content: string; toolCalls?: undefined }
+  | { role: 'assistant'; content: string | null; toolCalls: HistoryToolCall[] }
+  | { role: 'tool'; toolCallId: string; name: string; content: string };
+
+/** A chat-completions tool call as it goes over the wire. */
+export interface WireToolCall {
+  id: string;
+  type: 'function';
+  function: { name: string; arguments: string };
+}
+
+/** A chat-completions message as it goes over the wire. */
+export interface WireMessage {
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content?: string | null;
+  tool_calls?: WireToolCall[];
+  tool_call_id?: string;
+  name?: string;
 }
 
 export interface ToolCallRecord {
@@ -50,7 +79,11 @@ export type Assertion =
 export interface BenchCase {
   id: string;
   capability: string;
-  history?: ChatMessage[];
+  history?: HistoryMessage[];
+  // The history already rendered into the messages the profile's production memory replays.
+  // Set by the runner (./run.ts) from the profile's replayHistory; never written in a case. When
+  // absent, the loop renders `history` with the generic OpenAI replay.
+  replayedHistory?: WireMessage[];
   sms: string;
   mocks?: MockMap;
   expect: Assertion[];

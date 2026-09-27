@@ -6,6 +6,7 @@ import type { AgentProfile } from '../profile.js';
 import { buildSystemPrompt, buildUserMessage } from '../prompt.js';
 import { getToolDefs } from '../tools.js';
 import { defaultMocks } from '../mock-engine.js';
+import { replayHugoHistory } from '../history.js';
 import { CASES } from '../cases.js';
 import { FIDELITY_CASES } from '../cases-fidelity.js';
 
@@ -14,6 +15,7 @@ export const hugoProfile: AgentProfile = {
   label: 'Hugo (n8n SMS agent)',
   buildSystemPrompt,
   buildUserMessage,
+  replayHistory: replayHugoHistory,
   toolDefs: getToolDefs(),
   mockDefaults: defaultMocks,
   replyConstraints: { maxChars: 320, allowMarkdown: false, allowNarration: false },

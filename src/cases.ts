@@ -16,6 +16,14 @@
 
 import type { BenchCase } from './case.js';
 import type { MockMap } from './mock-engine.js';
+import {
+  calendarsListResult,
+  createdEventEcho,
+  createdReminderEcho,
+  createdTaskEcho,
+  taskListsListResult,
+  toolTurn,
+} from './memory-history.js';
 
 export const PERSONAL_ID = '2e9ee3a1-4864-467c-9147-2c2092915be1';
 export const HOUSEHOLD_ID = '53c6b1e2-e1fa-4cae-94ed-32a1c016e2d7';
@@ -486,13 +494,38 @@ export const CASES: BenchCase[] = [
   // ----------------------------------------------------------------------------
   // memory-followup
   // ----------------------------------------------------------------------------
+  // Each history is the earlier turn as production memory stored it: the user turn, the tool
+  // calls the agent made with their real-shaped results (carrying the ids the follow-up needs),
+  // then the reply. The profile's replayHistory renders it the way that surface replays it.
   {
     id: 'mem-01',
     capability: 'memory-followup',
-    history: [
-      { role: 'user', content: 'add Dentist to my Personal calendar today at 3pm' },
-      { role: 'assistant', content: 'Done — Dentist is on your Personal calendar today at 3pm.' },
-    ],
+    history: toolTurn({
+      user: 'add Dentist to my Personal calendar today at 3pm',
+      steps: [
+        { id: 'iNfjIBDs2g1JjlMhZchvJunn6dqwecrb', name: 'list', arguments: { type: 'calendars' }, result: calendarsListResult() },
+        {
+          id: 'IUzSjfMAK3QdxLktC4uPi3SaV0zzXmmf',
+          name: 'create',
+          arguments: {
+            type: 'calendar_event',
+            calendarId: PERSONAL_ID,
+            title: 'Dentist',
+            startTime: '2026-06-26T15:00:00',
+            endTime: '2026-06-26T16:00:00',
+            timeZone: 'America/Detroit',
+          },
+          result: createdEventEcho({
+            id: 'mock-evt-dentist',
+            title: 'Dentist',
+            calendarId: PERSONAL_ID,
+            startUtc: '2026-06-26T19:00:00Z',
+            endUtc: '2026-06-26T20:00:00Z',
+          }),
+        },
+      ],
+      reply: 'Done — Dentist is on your Personal calendar today at 3pm.',
+    }),
     sms: 'actually move that to 4pm',
     mocks: eventLookupMock({
       calendarId: PERSONAL_ID,
@@ -516,10 +549,19 @@ export const CASES: BenchCase[] = [
   {
     id: 'mem-02',
     capability: 'memory-followup',
-    history: [
-      { role: 'user', content: 'add eggs to my groceries list' },
-      { role: 'assistant', content: 'Added eggs to your groceries list.' },
-    ],
+    history: toolTurn({
+      user: 'add eggs to my groceries list',
+      steps: [
+        { id: 'qINnY98vRrBeD9Xp9yQI96C7DUqzzXWV', name: 'list', arguments: { type: 'task_lists' }, result: taskListsListResult() },
+        {
+          id: 'H0t0lubeTWttGqwoxRLcWxZ3JdIJQur8',
+          name: 'create',
+          arguments: { type: 'task', taskListId: GROCERIES_ID, title: 'eggs' },
+          result: createdTaskEcho({ id: 'mock-task-eggs', title: 'eggs', taskListId: GROCERIES_ID }),
+        },
+      ],
+      reply: 'Added eggs to your groceries list.',
+    }),
     sms: 'add milk to that list too',
     expect: [
       { kind: 'toolCalled', tool: 'create' },
@@ -533,10 +575,23 @@ export const CASES: BenchCase[] = [
   {
     id: 'mem-03',
     capability: 'memory-followup',
-    history: [
-      { role: 'user', content: 'remind me to call the bank at 5pm today' },
-      { role: 'assistant', content: 'Reminder set to call the bank at 5pm today.' },
-    ],
+    history: toolTurn({
+      user: 'remind me to call the bank at 5pm today',
+      steps: [
+        {
+          id: 'ftJOLlHNlVPZZ8pve5yfz5pcUu9LeQ5I',
+          name: 'create',
+          arguments: {
+            type: 'reminder',
+            title: 'call the bank',
+            remindAt: '2026-06-26T21:00:00Z',
+            originalInput: 'remind me to call the bank at 5pm today',
+          },
+          result: createdReminderEcho({ id: 'mock-rem-bank', title: 'call the bank', remindAt: '2026-06-26T21:00:00Z' }),
+        },
+      ],
+      reply: 'Reminder set to call the bank at 5pm today.',
+    }),
     sms: 'push that back an hour',
     mocks: reminderLookupMock({
       id: 'mock-rem-bank',
@@ -553,10 +608,32 @@ export const CASES: BenchCase[] = [
   {
     id: 'mem-04',
     capability: 'memory-followup',
-    history: [
-      { role: 'user', content: 'add Connectwise standup to my Connectwise calendar tomorrow at 9am' },
-      { role: 'assistant', content: 'Added the standup to your Connectwise calendar tomorrow at 9am.' },
-    ],
+    history: toolTurn({
+      user: 'add Connectwise standup to my Connectwise calendar tomorrow at 9am',
+      steps: [
+        { id: 'E9szL1J8RRafoF2bTM8yMv51zVNSytV8', name: 'list', arguments: { type: 'calendars' }, result: calendarsListResult() },
+        {
+          id: 'ysnPee9TL2TfYPXvsy8d2FmIN374je42',
+          name: 'create',
+          arguments: {
+            type: 'calendar_event',
+            calendarId: CONNECTWISE_ID,
+            title: 'Connectwise standup',
+            startTime: '2026-06-27T09:00:00',
+            endTime: '2026-06-27T09:30:00',
+            timeZone: 'America/Detroit',
+          },
+          result: createdEventEcho({
+            id: 'mock-evt-standup',
+            title: 'Connectwise standup',
+            calendarId: CONNECTWISE_ID,
+            startUtc: '2026-06-27T13:00:00Z',
+            endUtc: '2026-06-27T13:30:00Z',
+          }),
+        },
+      ],
+      reply: 'Added the standup to your Connectwise calendar tomorrow at 9am.',
+    }),
     sms: 'cancel it',
     mocks: eventLookupMock({
       calendarId: CONNECTWISE_ID,

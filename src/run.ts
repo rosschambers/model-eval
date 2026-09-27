@@ -13,6 +13,7 @@ import { MODELS } from './models.js';
 import { getClient } from './models.js';
 import type { ModelConfig } from './models.js';
 import { runCase } from './loop.js';
+import { replayOpenAiHistory } from './history.js';
 import type { ChatClient } from './loop.js';
 import { withStructuralGuard, withVerificationPass, type CaseRunner } from './interventions.js';
 import { scoreCase } from './score.js';
@@ -81,13 +82,17 @@ export async function runOneProfile(
     const sms = wrap ? wrap(c.sms) : c.sms;
     // Production memory stores each earlier user turn exactly as it was sent (n8n's Postgres chat
     // memory keeps the full input text, REQUEST CONTEXT included), so history user turns get the same
-    // wrapping as the current one. Assistant turns are left as the case wrote them.
+    // wrapping as the current one. Assistant and tool turns are left as the case wrote them.
     let history = c.history;
     if (wrap && history) {
-      history = history.map((entry) => (entry.role === 'user' ? { ...entry, content: wrap(String(entry.content ?? '')) } : entry));
+      history = history.map((entry) => (entry.role === 'user' ? { ...entry, content: wrap(entry.content) } : entry));
     }
+    // Then render the earlier turns into exactly what this agent's memory replays to the model
+    // (tool calls and tool results included, windowed where production windows).
+    const replay = profile.replayHistory ?? replayOpenAiHistory;
+    const replayedHistory = history ? replay(history) : undefined;
     const userContext = c.userContext ?? profile.buildTrailingUserContext?.();
-    const mergedCase: BenchCase = { ...c, history, sms, userContext, mocks: mergedMocks };
+    const mergedCase: BenchCase = { ...c, history, replayedHistory, sms, userContext, mocks: mergedMocks };
 
     for (let rep = 0; rep < repeat; rep++) {
       try {

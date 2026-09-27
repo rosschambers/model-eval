@@ -6,7 +6,7 @@
 
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import type { MockMap } from './mock-engine.js';
-import type { BenchCase } from './case.js';
+import type { BenchCase, HistoryMessage, WireMessage } from './case.js';
 import { hugoProfile } from './profiles/hugo.js';
 import { murmur8Profile } from './profiles/murmur8.js';
 import { homeProfile } from './profiles/home.js';
@@ -27,6 +27,11 @@ export interface AgentProfile {
   buildUserMessage?: (sms: string) => string;
   /** Per-request trailing context system message (for example murmur8's <user-context> clock). */
   buildTrailingUserContext?: () => string;
+  /**
+   * Render a case's earlier turns into the messages this agent's production memory replays to the
+   * model (./history.ts). Without one, history is sent as generic OpenAI chat messages.
+   */
+  replayHistory?: (history: HistoryMessage[]) => WireMessage[];
   toolDefs: ChatCompletionTool[];
   mockDefaults: MockMap;
   replyConstraints: ReplyConstraints;

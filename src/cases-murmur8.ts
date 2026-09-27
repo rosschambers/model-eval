@@ -18,6 +18,7 @@
 import type { BenchCase } from './case.js';
 import type { MockMap } from './mock-engine.js';
 import { paginated, errorOnce } from './mock-engine.js';
+import { calendarsListResult, createdEventEcho, createdTaskEcho, taskListsListResult, toolTurn } from './memory-history.js';
 
 const PERSONAL_ID = '2e9ee3a1-4864-467c-9147-2c2092915be1';
 const HOUSEHOLD_ID = '53c6b1e2-e1fa-4cae-94ed-32a1c016e2d7';
@@ -360,13 +361,38 @@ export const MURMUR8_CASES: BenchCase[] = [
   // ----------------------------------------------------------------------------
   // memory-followup
   // ----------------------------------------------------------------------------
+  // Each history is the earlier turn as production memory stored it: the user turn, the tool
+  // calls the agent made with their real-shaped results (carrying the ids the follow-up needs),
+  // then the reply. The profile's replayHistory renders it the way that surface replays it.
   {
     id: 'm8-mem-01',
     capability: 'memory-followup',
-    history: [
-      { role: 'user', content: 'Add Dentist to my Personal calendar today at 3pm.' },
-      { role: 'assistant', content: 'Done — Dentist is on your Personal calendar today at 3pm.' },
-    ],
+    history: toolTurn({
+      user: 'Add Dentist to my Personal calendar today at 3pm.',
+      steps: [
+        { id: 'j2zi2obepb0wbveFEBvEcAhviyiun3dO', name: 'list', arguments: { type: 'calendars' }, result: calendarsListResult() },
+        {
+          id: '2NdVIdqTD9YpPXFEfImFj9iR2Zgsvtfq',
+          name: 'create',
+          arguments: {
+            type: 'calendar_event',
+            calendarId: PERSONAL_ID,
+            title: 'Dentist',
+            startTime: '2026-06-26T15:00:00',
+            endTime: '2026-06-26T16:00:00',
+            timeZone: 'America/Detroit',
+          },
+          result: createdEventEcho({
+            id: 'mock-evt-dentist',
+            title: 'Dentist',
+            calendarId: PERSONAL_ID,
+            startUtc: '2026-06-26T19:00:00Z',
+            endUtc: '2026-06-26T20:00:00Z',
+          }),
+        },
+      ],
+      reply: 'Done — Dentist is on your Personal calendar today at 3pm.',
+    }),
     sms: 'Actually, move that to 4pm.',
     mocks: eventLookupMock({
       calendarId: PERSONAL_ID,
@@ -390,10 +416,19 @@ export const MURMUR8_CASES: BenchCase[] = [
   {
     id: 'm8-mem-02',
     capability: 'memory-followup',
-    history: [
-      { role: 'user', content: 'Add eggs to my groceries list.' },
-      { role: 'assistant', content: 'Added eggs to your groceries list.' },
-    ],
+    history: toolTurn({
+      user: 'Add eggs to my groceries list.',
+      steps: [
+        { id: '2GcnkU5v4CtZXkWOx7I26gcpy8Uu8jXt', name: 'list', arguments: { type: 'task_lists' }, result: taskListsListResult() },
+        {
+          id: 'ZupOT3E9KDsyc4bplHfBMqA23jdiYutq',
+          name: 'create',
+          arguments: { type: 'task', taskListId: GROCERIES_ID, title: 'eggs' },
+          result: createdTaskEcho({ id: 'mock-task-eggs', title: 'eggs', taskListId: GROCERIES_ID }),
+        },
+      ],
+      reply: 'Added eggs to your groceries list.',
+    }),
     sms: 'Add milk to that list too.',
     expect: [
       { kind: 'toolCalled', tool: 'create' },

@@ -6,6 +6,7 @@
 
 import type { BenchCase, Transcript, ToolCallRecord } from './case.js';
 import { runLoop, type ChatClient } from './loop.js';
+import { historyMessages } from './history.js';
 import { isFabrication } from './fabrication.js';
 
 /** The single corrective nudge injected when phase 1 fabricates completion. */
@@ -52,10 +53,7 @@ function combine(phase1: Transcript, phase2: Transcript): Transcript {
  */
 export function withStructuralGuard(): CaseRunner {
   return async (client, modelName, c, sys, tools, temperature): Promise<Transcript> => {
-    const messages: any[] = [{ role: 'system', content: sys }];
-    for (const entry of c.history ?? []) {
-      messages.push({ role: entry.role, content: entry.content });
-    }
+    const messages: any[] = [{ role: 'system', content: sys }, ...historyMessages(c)];
     messages.push({ role: 'user', content: c.sms });
 
     const { transcript: phase1, messages: afterPhase1 } = await runLoop(
@@ -109,10 +107,7 @@ function buildVerifierSummary(c: BenchCase, phase1: Transcript): string {
  */
 export function withVerificationPass(): CaseRunner {
   return async (client, modelName, c, sys, tools, temperature): Promise<Transcript> => {
-    const messages: any[] = [{ role: 'system', content: sys }];
-    for (const entry of c.history ?? []) {
-      messages.push({ role: entry.role, content: entry.content });
-    }
+    const messages: any[] = [{ role: 'system', content: sys }, ...historyMessages(c)];
     messages.push({ role: 'user', content: c.sms });
 
     const { transcript: phase1 } = await runLoop(

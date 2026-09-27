@@ -6,6 +6,7 @@
 
 import type { BenchCase, Transcript, ToolCallRecord } from './case.js';
 import { runTool } from './mock-engine.js';
+import { historyMessages } from './history.js';
 
 export const MAX_ITERATIONS = 10;
 
@@ -126,10 +127,7 @@ export async function runCase(
   tools: any[],
   temperature?: number,
 ): Promise<Transcript> {
-  const messages: any[] = [{ role: 'system', content: sys }];
-  for (const entry of c.history ?? []) {
-    messages.push({ role: entry.role, content: entry.content });
-  }
+  const messages: any[] = [{ role: 'system', content: sys }, ...historyMessages(c)];
   messages.push({ role: 'user', content: c.sms });
   // Production injects screen-context as a trailing system message after the turn.
   if (c.screenContext !== undefined) {

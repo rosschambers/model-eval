@@ -13,6 +13,7 @@
 
 import type { BenchCase } from './case.js';
 import { paginated } from './mock-engine.js';
+import { createdReminderEcho, createdTaskEcho, taskListsListResult, toolTurn } from './memory-history.js';
 import {
   CALENDAR_NAMES,
   CONNECTWISE_ID,
@@ -148,14 +149,23 @@ export const PROBE_CASES: BenchCase[] = [
     replyRubric: 'Covers all twelve errands, paging through every result page.',
   },
 
-  // memory follow-ups
+  // memory follow-ups: the earlier turn as production memory stored it (see cases.ts memory-followup)
   {
     id: 'probe-memory-09',
     capability: 'memory-followup',
-    history: [
-      { role: 'user', content: 'add sunscreen to my Shopping list' },
-      { role: 'assistant', content: 'Added sunscreen to your Shopping list.' },
-    ],
+    history: toolTurn({
+      user: 'add sunscreen to my Shopping list',
+      steps: [
+        { id: '0bpAzqt0FvyWHGD6EMS7ykC3CzmGZ9lf', name: 'list', arguments: { type: 'task_lists' }, result: taskListsListResult() },
+        {
+          id: 'adlzt1DDU4C9ZYIqM2MgsOlci0RyrPBs',
+          name: 'create',
+          arguments: { type: 'task', taskListId: SHOPPING_ID, title: 'sunscreen' },
+          result: createdTaskEcho({ id: 'mock-task-sunscreen', title: 'sunscreen', taskListId: SHOPPING_ID }),
+        },
+      ],
+      reply: 'Added sunscreen to your Shopping list.',
+    }),
     sms: 'throw bug spray on there too',
     expect: [
       { kind: 'toolCalled', tool: 'create' },
@@ -169,10 +179,23 @@ export const PROBE_CASES: BenchCase[] = [
   {
     id: 'probe-memory-10',
     capability: 'memory-followup',
-    history: [
-      { role: 'user', content: 'remind me to take my meds at 3pm today' },
-      { role: 'assistant', content: 'Reminder set to take your meds at 3pm today.' },
-    ],
+    history: toolTurn({
+      user: 'remind me to take my meds at 3pm today',
+      steps: [
+        {
+          id: 'eil8HGTJNlOcKy2iF6Jw5CvrOvPgWAzn',
+          name: 'create',
+          arguments: {
+            type: 'reminder',
+            title: 'take my meds',
+            remindAt: '2026-06-26T19:00:00Z',
+            originalInput: 'remind me to take my meds at 3pm today',
+          },
+          result: createdReminderEcho({ id: 'mock-rem-meds', title: 'take my meds', remindAt: '2026-06-26T19:00:00Z' }),
+        },
+      ],
+      reply: 'Reminder set to take your meds at 3pm today.',
+    }),
     sms: 'actually make that 3:30',
     mocks: reminderLookupMock({ id: 'mock-rem-meds', title: 'take my meds', remindAt: '2026-06-26T19:00:00Z' }),
     expect: [

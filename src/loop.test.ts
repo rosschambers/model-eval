@@ -230,6 +230,49 @@ describe('runCase', () => {
     });
   });
 
+  it('sends history tool calls and tool results between the system prompt and the sms, in order', async () => {
+    const { client, calls } = stubClient([{ choices: [{ message: { role: 'assistant', content: 'ok' } }] }]);
+    const c = baseCase({
+      history: [
+        { role: 'user', content: 'add eggs to my groceries list' },
+        { role: 'assistant', content: null, toolCalls: [{ id: 'h1', name: 'create', arguments: { type: 'task', title: 'eggs' } }] },
+        { role: 'tool', toolCallId: 'h1', name: 'create', content: '{"Id":"mock-task-eggs"}' },
+        { role: 'assistant', content: 'Added eggs.' },
+      ],
+      sms: 'add milk too',
+    });
+
+    await runCase(client, 'model-x', c, SYS, TOOLS);
+
+    expect(calls[0].messages).toEqual([
+      { role: 'system', content: SYS },
+      { role: 'user', content: 'add eggs to my groceries list' },
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [{ id: 'h1', type: 'function', function: { name: 'create', arguments: '{"type":"task","title":"eggs"}' } }],
+      },
+      { role: 'tool', tool_call_id: 'h1', content: '{"Id":"mock-task-eggs"}' },
+      { role: 'assistant', content: 'Added eggs.' },
+      { role: 'user', content: 'add milk too' },
+    ]);
+  });
+
+  it("sends a profile's replayedHistory verbatim instead of re-rendering history", async () => {
+    const { client, calls } = stubClient([{ choices: [{ message: { role: 'assistant', content: 'ok' } }] }]);
+    const replayed = [
+      { role: 'user' as const, content: 'earlier [ctx]' },
+      { role: 'assistant' as const, content: '', tool_calls: [{ id: 'h1', type: 'function' as const, function: { name: 'list', arguments: '{}' } }] },
+      { role: 'tool' as const, name: 'list', tool_call_id: 'h1', content: '[]' },
+      { role: 'assistant' as const, content: 'reply' },
+    ];
+    const c = baseCase({ history: [{ role: 'user', content: 'ignored' }], replayedHistory: replayed, sms: 'now' });
+
+    await runCase(client, 'model-x', c, SYS, TOOLS);
+
+    expect(calls[0].messages).toEqual([{ role: 'system', content: SYS }, ...replayed, { role: 'user', content: 'now' }]);
+  });
+
   it('appends screenContext as a trailing system message when present', async () => {
     const { client, calls } = stubClient([
       {

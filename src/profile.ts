@@ -6,7 +6,7 @@
 
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
 import type { MockMap } from './mock-engine.js';
-import type { BenchCase, HistoryMessage, WireMessage } from './case.js';
+import type { BenchCase, HistoryMessage, WireMessage, ToolExchangeRenderer } from './case.js';
 import { hugoProfile } from './profiles/hugo.js';
 import { murmur8Profile } from './profiles/murmur8.js';
 import { homeProfile } from './profiles/home.js';
@@ -32,6 +32,8 @@ export interface AgentProfile {
    * model (./history.ts). Without one, history is sent as generic OpenAI chat messages.
    */
   replayHistory?: (history: HistoryMessage[]) => WireMessage[];
+  /** Current-turn transport, independently of stored-memory replay. Absent means generic OpenAI. */
+  renderToolExchange?: ToolExchangeRenderer;
   toolDefs: ChatCompletionTool[];
   mockDefaults: MockMap;
   replyConstraints: ReplyConstraints;

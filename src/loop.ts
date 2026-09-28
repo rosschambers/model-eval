@@ -4,7 +4,7 @@
 // engine, feeds results back, and captures a Transcript (tool calls, final
 // text, iteration count, and cumulative latency).
 
-import type { BenchCase, Transcript, ToolCallRecord } from './case.js';
+import type { BenchCase, Transcript, ToolCallRecord, WireMessage } from './case.js';
 import { runTool } from './mock-engine.js';
 import { historyMessages } from './history.js';
 
@@ -30,17 +30,22 @@ export async function runLoop(
   tools: any[],
   mocks: BenchCase['mocks'] = {},
   temperature?: number,
+  rendering: Pick<BenchCase, 'renderToolExchange' | 'screenContext' | 'userContext'> = {},
 ): Promise<{ transcript: Transcript; messages: any[] }> {
   const toolCalls: ToolCallRecord[] = [];
   let finalText = '';
   let iterations = 0;
   let latencyMs = 0;
+  // Request-scoped context is never persisted among the conversation's tool messages.
+  const contextMessages: WireMessage[] = [];
+  if (rendering.screenContext !== undefined) contextMessages.push({ role: 'system', content: rendering.screenContext });
+  if (rendering.userContext !== undefined) contextMessages.push({ role: 'system', content: rendering.userContext });
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const t0 = Date.now();
     const resp = await client.chat.completions.create({
       model: modelName,
-      messages,
+      messages: [...messages, ...contextMessages],
       tools,
       tool_choice: 'auto',
       ...(temperature === undefined ? {} : { temperature }),
@@ -50,7 +55,7 @@ export async function runLoop(
     const msg = resp.choices[0].message;
 
     if (Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
-      messages.push(msg);
+      const results: string[] = [];
       for (const call of msg.tool_calls) {
         let args: Record<string, unknown>;
         try {
@@ -80,11 +85,16 @@ export async function runLoop(
         } catch {
           // Non-JSON tool result (e.g. a formatted time string); leave fields unset.
         }
-        messages.push({
-          role: 'tool',
-          tool_call_id: call.id,
-          content: result,
-        });
+        results.push(result);
+      }
+      // Score raw calls/results above; only the messages sent back to the model are transformed.
+      if (rendering.renderToolExchange) {
+        messages.push(...rendering.renderToolExchange(msg, results));
+      } else {
+        messages.push(msg);
+        for (const [index, call] of msg.tool_calls.entries()) {
+          messages.push({ role: 'tool', tool_call_id: call.id, content: results[index] });
+        }
       }
       iterations += 1;
       continue;
@@ -129,14 +139,6 @@ export async function runCase(
 ): Promise<Transcript> {
   const messages: any[] = [{ role: 'system', content: sys }, ...historyMessages(c)];
   messages.push({ role: 'user', content: c.sms });
-  // Production injects screen-context as a trailing system message after the turn.
-  if (c.screenContext !== undefined) {
-    messages.push({ role: 'system', content: c.screenContext });
-  }
-  if (c.userContext !== undefined) {
-    messages.push({ role: 'system', content: c.userContext });
-  }
-
-  const { transcript } = await runLoop(client, modelName, messages, tools, c.mocks ?? {}, temperature);
+  const { transcript } = await runLoop(client, modelName, messages, tools, c.mocks ?? {}, temperature, c);
   return transcript;
 }

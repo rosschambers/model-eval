@@ -63,6 +63,7 @@ export function withStructuralGuard(): CaseRunner {
       tools,
       c.mocks ?? {},
       temperature,
+      c,
     );
 
     if (!isFabrication(phase1)) {
@@ -78,6 +79,7 @@ export function withStructuralGuard(): CaseRunner {
       tools,
       c.mocks ?? {},
       temperature,
+      c,
     );
 
     return combine(phase1, phase2);
@@ -117,6 +119,7 @@ export function withVerificationPass(): CaseRunner {
       tools,
       c.mocks ?? {},
       temperature,
+      c,
     );
 
     const verifierMessages: any[] = [
@@ -131,6 +134,7 @@ export function withVerificationPass(): CaseRunner {
       tools,
       c.mocks ?? {},
       temperature,
+      c,
     );
 
     return {

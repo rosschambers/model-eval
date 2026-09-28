@@ -10,7 +10,7 @@ import type { AgentProfile } from '../profile.js';
 import { buildMurmur8PortalPrompt, buildMurmur8UserContext } from '../murmur8-prompt.js';
 import { getMurmur8ToolDefs } from '../tools-murmur8.js';
 import { defaultMocks } from '../mock-engine.js';
-import { replayPortalHistory } from '../history.js';
+import { replayPortalHistory, renderPortalToolExchange } from '../history.js';
 import { MURMUR8_CASES } from '../cases-murmur8.js';
 
 export const murmur8Profile: AgentProfile = {
@@ -19,6 +19,7 @@ export const murmur8Profile: AgentProfile = {
   buildSystemPrompt: buildMurmur8PortalPrompt,
   buildTrailingUserContext: buildMurmur8UserContext,
   replayHistory: replayPortalHistory,
+  renderToolExchange: renderPortalToolExchange,
   toolDefs: getMurmur8ToolDefs(),
   mockDefaults: defaultMocks,
   replyConstraints: { maxChars: null, allowMarkdown: true, allowNarration: false },

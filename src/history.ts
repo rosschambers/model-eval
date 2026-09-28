@@ -1,6 +1,8 @@
 // History replay. A case writes its earlier turns once, surface-neutral (HistoryMessage). Each
 // profile renders them into the exact chat-completions messages its production memory replays to
 // the model on the follow-up turn, so a memory case sees what the live agent sees.
+// Current-turn renderers share result formatting, but do not apply the memory window or the
+// database transformations that only happen after a Hugo turn is saved.
 //
 // Ground truth (verified 2026-09-27 against the live n8n container, n8n-postgres, murmur8-postgres
 // and the murmur8 source):
@@ -120,12 +122,52 @@ function hugoObservation(toolName: string, rawResult: string): string {
   return JSON.stringify([{ response: [{ type: 'text', text: rawResult }] }]);
 }
 
-/** The arguments n8n stores for a call: the model's arguments plus `tool` (toolkit tools) and `id`, jsonb-ordered. */
-function hugoArguments(call: HistoryToolCall): string {
+/** n8n adds transport fields before execution resumes; only persisted history gets jsonb ordering. */
+function hugoArguments(call: HistoryToolCall, fromMemory: boolean = true): string {
   const injected: Record<string, unknown> = { ...call.arguments };
   if (!HUGO_CODE_TOOLS.has(call.name)) injected.tool = call.name;
   injected.id = call.id;
-  return JSON.stringify(orderKeysLikeJsonb(injected));
+  return JSON.stringify(fromMemory ? orderKeysLikeJsonb(injected) : injected);
+}
+
+/**
+ * Current Hugo steps: n8n 2.14.2 buildSteps.ts reconstructs one call per result without a database
+ * round trip. @langchain/classic 1.0.17 format_scratchpad/tool_calling.js puts the tool name in
+ * additional_kwargs, NOT ToolMessage.name; @langchain/openai 1.1.3 converters/completions.js omits
+ * it on the wire. Unlike memory replay: insertion-order arguments and no tool-message name.
+ */
+export function renderHugoToolExchange(message: WireMessage, results: string[]): WireMessage[] {
+  const messages: WireMessage[] = [];
+  for (const [index, call] of (message.tool_calls ?? []).entries()) {
+    let argumentsText = call.function.arguments;
+    try {
+      argumentsText = hugoArguments({
+        id: call.id, name: call.function.name, arguments: JSON.parse(argumentsText),
+      }, false);
+    } catch {
+      // Preserve the harness's malformed-argument record rather than inventing valid arguments.
+    }
+    messages.push({
+      role: 'assistant', content: '',
+      tool_calls: [{ id: call.id, type: 'function', function: { name: call.function.name, arguments: argumentsText } }],
+    });
+    messages.push({ role: 'tool', tool_call_id: call.id, content: hugoObservation(call.function.name, results[index]) });
+  }
+  return messages;
+}
+
+/**
+ * Portal ToolExecutor persists each result before AgentOrchestrator reloads the conversation on
+ * the next iteration. The current turn therefore uses the same jsonb text and data tags as history.
+ * Keep the model's argument strings and grouped calls; transport fields never enter the scorer.
+ */
+export function renderPortalToolExchange(message: WireMessage, results: string[]): WireMessage[] {
+  const assistant: WireMessage = { role: 'assistant', tool_calls: message.tool_calls };
+  if (message.content) assistant.content = message.content;
+  return [assistant, ...(message.tool_calls ?? []).map((call, index): WireMessage => ({
+    role: 'tool', tool_call_id: call.id,
+    content: `<tool-result name="${call.function.name}" type="data">\n${portalResultText(results[index])}\n</tool-result>`,
+  }))];
 }
 
 /** n8n loadMemory's cleanupOrphanedMessages, applied to the replayed window. */

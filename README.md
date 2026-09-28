@@ -53,6 +53,37 @@ model-eval run <hf-repo> [--profile hugo,murmur8] [--baseline cached:<id>] [--ke
    (aggregates), and a `judging-bundle.md` for a separate reply-quality pass.
 5. Tears down the server (unless `--keep`).
 
+## Transport Fidelity
+
+Hugo and murmur8 (including their probe profiles) render both history and current tool exchanges
+for their production chat-completions paths. Hugo current steps use one assistant/result pair per
+call, toolkit `tool` and call `id` arguments, MCP text envelopes or code-tool string envelopes.
+Unlike stored history, current arguments keep insertion order and current tool messages omit
+`name`. The portal keeps grouped calls and wraps database-formatted JSON in `<tool-result>` data
+tags. Screen context and the clock remain last on every request, including both intervention phases.
+Other profiles retain unchanged generic assistant/tool transport, but the shared context-placement
+correction applies to every profile. In particular, `voice` now places its clock after the tool
+exchange on the second request, without duplicating it. `voice` is still a profile-only placeholder,
+not a verified portal execution path.
+
+This is **renderer fidelity, not mock payload schema fidelity**. Default create/update results
+still echo input fields with synthetic or supplied identifiers instead of complete production entity responses;
+`get` returns only `id` and `found`; most lists and searches are empty. Revisions, realistic cursor
+values and full local-time fields are not consistently modelled. Structured mock errors are tool
+payloads, not simulated n8n node failures or network exceptions. The portal date helper still uses
+the harness's JavaScript implementation, not the production C# validation rules. No payloads or
+case assertions were changed by the transport fix.
+
+Portal argument-key normalization and invalid or non-object JSON argument handling remain fidelity
+gaps. Production normalizes argument keys against tool schemas and catches tool-execution errors;
+the harness does not fully reproduce these paths. Malformed JSON can be retained under `_raw`,
+while non-object values such as `null` or strings can fail validation or execution differently.
+The transport renderer does not correct these argument-processing or error-handling differences.
+
+Cached baselines do not fingerprint renderer code. Re-run affected baselines before comparing new
+results: `results/2026-09-27-v7-history-rebaseline-run2` is an immutable **history-only** baseline,
+not a current-transport baseline. Keep old results unchanged; record new runs separately.
+
 ## Tech stack
 
 TypeScript, Node, Vitest. No frameworks. The profiles mirror two real agents (an SMS assistant

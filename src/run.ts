@@ -92,7 +92,10 @@ export async function runOneProfile(
     const replay = profile.replayHistory ?? replayOpenAiHistory;
     const replayedHistory = history ? replay(history) : undefined;
     const userContext = c.userContext ?? profile.buildTrailingUserContext?.();
-    const mergedCase: BenchCase = { ...c, history, replayedHistory, sms, userContext, mocks: mergedMocks };
+    const mergedCase: BenchCase = {
+      ...c, history, replayedHistory, sms, userContext, mocks: mergedMocks,
+      renderToolExchange: profile.renderToolExchange,
+    };
 
     for (let rep = 0; rep < repeat; rep++) {
       try {

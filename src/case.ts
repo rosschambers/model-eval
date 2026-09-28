@@ -40,6 +40,9 @@ export interface WireMessage {
   name?: string;
 }
 
+/** Render one current model step and its raw results, in matching tool-call order. */
+export type ToolExchangeRenderer = (message: WireMessage, results: string[]) => WireMessage[];
+
 export interface ToolCallRecord {
   name: string;
   args: Record<string, unknown>;
@@ -84,6 +87,8 @@ export interface BenchCase {
   // Set by the runner (./run.ts) from the profile's replayHistory; never written in a case. When
   // absent, the loop renders `history` with the generic OpenAI replay.
   replayedHistory?: WireMessage[];
+  // Set by the profile runner. Only current steps pass through this renderer, never history.
+  renderToolExchange?: ToolExchangeRenderer;
   sms: string;
   mocks?: MockMap;
   expect: Assertion[];

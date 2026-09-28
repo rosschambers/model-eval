@@ -1,13 +1,17 @@
 // Authoring helpers for memory-follow-up histories. An earlier turn is written the way production
 // stored it: the user turn, one model step per tool call (the call plus the raw JSON the tool
 // returned), then the final reply. The result shapes copy real murmur8 tool output:
-// - `list` rows: the camelCase `{results, nextCursor}` page (fixtures/responses-fixture.json).
+// - `list` rows: the camelCase `{results, nextCursor}` page of lean `{id, name}` rows, sorted by
+//   name (fixtures/responses-fixture.json; murmur8 CalendarAiListView / TaskListAiListView).
 // - `create` echoes: the PascalCase entity murmur8 returns (hugo_chat_history rows 972 for a
 //   reminder, 1000 for a calendar event, 617 for a task; murmur8 ConversationMessages agrees).
-// Each profile's replayHistory (./history.ts) then renders these into what its memory replays.
+// Results are written as System.Text.Json text (./murmur8-results.ts toSystemTextJson), the raw
+// text the Hugo MCP path returns. Each profile's replayHistory (./history.ts) then renders these
+// into what its memory replays.
 
 import responses from '../fixtures/responses-fixture.json' with { type: 'json' };
 import type { HistoryMessage } from './case.js';
+import { toSystemTextJson } from './murmur8-results.js';
 
 const USER_TIMEZONE = 'America/Detroit';
 
@@ -24,7 +28,7 @@ export function toolTurn(turn: { user: string; steps: HistoryStep[]; reply: stri
   const messages: HistoryMessage[] = [{ role: 'user', content: turn.user }];
   for (const step of turn.steps) {
     messages.push({ role: 'assistant', content: null, toolCalls: [{ id: step.id, name: step.name, arguments: step.arguments }] });
-    messages.push({ role: 'tool', toolCallId: step.id, name: step.name, content: JSON.stringify(step.result) });
+    messages.push({ role: 'tool', toolCallId: step.id, name: step.name, content: toSystemTextJson(step.result) });
   }
   messages.push({ role: 'assistant', content: turn.reply });
   return messages;

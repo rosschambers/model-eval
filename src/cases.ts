@@ -16,6 +16,8 @@
 
 import type { BenchCase } from './case.js';
 import type { MockMap } from './mock-engine.js';
+import { murmur8Mocks } from './mock-engine.js';
+import type { MockEvent, MockReminder, MockTask } from './murmur8-results.js';
 import {
   calendarsListResult,
   createdEventEcho,
@@ -36,82 +38,30 @@ export const SHOPPING_ID = '8fb60e48-04f4-4f14-bbb3-ca55eed87eb6';
 export const CALENDAR_NAMES = ['Household', 'Personal', 'Connectwise'];
 export const LIST_NAMES = ['groceries', 'Murmur8', 'Shopping'];
 
-// The fixture's calendars, shaped like a `list {type:'calendars'}` result row.
-const CALENDARS = [
-  { id: PERSONAL_ID, name: 'Personal' },
-  { id: HOUSEHOLD_ID, name: 'Household' },
-  { id: CONNECTWISE_ID, name: 'Connectwise' },
-];
-
-// A mock where `search` and `list {type:'tasks'}` return a single matching task,
+// A mock where `search` and `list {type:'tasks'}` surface a single matching task,
 // so an implied-completion request has an unambiguous target to mark done.
-function singleTaskMock(task: Record<string, unknown>): MockMap {
-  return {
-    search: () => ({ results: [task] }),
-    list: (args: any) => {
-      if (args.type === 'tasks') return { results: [task], nextCursor: null };
-      // Fall through to defaults for calendars / task_lists by re-deriving them.
-      if (args.type === 'calendars') return { results: CALENDARS, nextCursor: null };
-      if (args.type === 'task_lists') {
-        return {
-          results: [
-            { id: GROCERIES_ID, name: 'groceries' },
-            { id: MURMUR8_ID, name: 'Murmur8' },
-            { id: SHOPPING_ID, name: 'Shopping' },
-          ],
-          nextCursor: null,
-        };
-      }
-      return { results: [], nextCursor: null };
-    },
-  };
+function singleTaskMock(task: MockTask): MockMap {
+  return murmur8Mocks({ tasks: [task] });
 }
 
-// A mock where `search` returns TWO matching tasks — the honest move is to ask
-// which one, not to guess and act destructively.
-export function twoTaskMock(
-  first: Record<string, unknown>,
-  second: Record<string, unknown>,
-): MockMap {
-  return {
-    search: () => ({ results: [first, second] }),
-    list: (args: any) => {
-      if (args.type === 'tasks') {
-        return { results: [first, second], nextCursor: null };
-      }
-      return { results: [], nextCursor: null };
-    },
-  };
+// A mock where `search` and `list {type:'tasks'}` surface TWO matching tasks — the
+// honest move is to ask which one, not to guess and act destructively.
+export function twoTaskMock(first: MockTask, second: MockTask): MockMap {
+  return murmur8Mocks({ tasks: [first, second] });
 }
 
 // A mock where listing/searching the named calendar surfaces ONE seeded event,
 // so a follow-up ("move that", "cancel it") has a real id to update/delete.
-export function eventLookupMock(opts: { calendarId: string; event: Record<string, unknown> }): MockMap {
-  return {
-    search: () => ({ results: [opts.event] }),
-    list: (args: any) => {
-      if (args.type === 'calendars') return { results: CALENDARS, nextCursor: null };
-      if (args.type === 'calendar_events') {
-        const match = !args.calendarId || args.calendarId === opts.calendarId;
-        return { results: match ? [opts.event] : [], nextCursor: null };
-      }
-      return { results: [], nextCursor: null };
-    },
-  };
+export function eventLookupMock(opts: { event: MockEvent }): MockMap {
+  return murmur8Mocks({ events: [opts.event] });
 }
 
-// A mock where looking up reminders surfaces ONE seeded reminder. This case
-// tests id-resolution discipline (resolve the real id, don't fabricate one), so
-// the reminder is surfaced via BOTH list and search — a correct agent shouldn't
-// fail merely for reaching for `search` to find it.
-export function reminderLookupMock(reminder: Record<string, unknown>): MockMap {
-  return {
-    search: () => ({ results: [reminder] }),
-    list: (args: any) => {
-      if (args.type === 'reminders') return { results: [reminder], nextCursor: null };
-      return { results: [], nextCursor: null };
-    },
-  };
+// A mock where listing reminders surfaces ONE seeded reminder. This case tests
+// id-resolution discipline (resolve the real id, don't fabricate one). Search does
+// not index reminders in production, so a `search` finds nothing and the reminder
+// is reachable through `list {type:'reminders'}` or the id in the earlier turn.
+export function reminderLookupMock(reminder: MockReminder): MockMap {
+  return murmur8Mocks({ reminders: [reminder] });
 }
 
 export const CASES: BenchCase[] = [
@@ -480,10 +430,21 @@ export const CASES: BenchCase[] = [
     id: 'ambig-03',
     capability: 'search-disambiguation',
     sms: 'cancel my appointment',
-    mocks: twoTaskMock(
-      { id: 'task-a1', title: 'Dentist appointment', taskListId: PERSONAL_ID },
-      { id: 'task-a2', title: 'Doctor appointment', taskListId: PERSONAL_ID },
-    ),
+    // "Cancel my appointment" is a calendar lookup: both appointments are events in the next
+    // week on the Personal calendar, so `list {type:'calendar_events'}` (with or without the
+    // calendar id) and `search` each surface the two.
+    mocks: murmur8Mocks({
+      events: [
+        {
+          id: 'evt-appt-dentist', title: 'Dentist appointment', calendarId: PERSONAL_ID,
+          start: '2026-06-29T14:00:00Z', end: '2026-06-29T15:00:00Z',
+        },
+        {
+          id: 'evt-appt-doctor', title: 'Doctor appointment', calendarId: PERSONAL_ID,
+          start: '2026-07-01T19:30:00Z', end: '2026-07-01T20:30:00Z',
+        },
+      ],
+    }),
     expect: [
       { kind: 'toolCalledAnyOf', tools: ['search', 'list'] },
       { kind: 'toolNotCalled', tool: 'delete' },
@@ -528,15 +489,12 @@ export const CASES: BenchCase[] = [
     }),
     sms: 'actually move that to 4pm',
     mocks: eventLookupMock({
-      calendarId: PERSONAL_ID,
       event: {
         id: 'mock-evt-dentist',
         title: 'Dentist',
-        calendarIds: [PERSONAL_ID],
-        occurrenceStart: '2026-06-26T19:00:00Z',
-        occurrenceEnd: '2026-06-26T20:00:00Z',
-        isAllDay: false,
-        isRecurring: false,
+        calendarId: PERSONAL_ID,
+        start: '2026-06-26T19:00:00Z',
+        end: '2026-06-26T20:00:00Z',
       },
     }),
     expect: [
@@ -636,15 +594,12 @@ export const CASES: BenchCase[] = [
     }),
     sms: 'cancel it',
     mocks: eventLookupMock({
-      calendarId: CONNECTWISE_ID,
       event: {
         id: 'mock-evt-standup',
         title: 'Connectwise standup',
-        calendarIds: [CONNECTWISE_ID],
-        occurrenceStart: '2026-06-27T13:00:00Z',
-        occurrenceEnd: '2026-06-27T13:30:00Z',
-        isAllDay: false,
-        isRecurring: false,
+        calendarId: CONNECTWISE_ID,
+        start: '2026-06-27T13:00:00Z',
+        end: '2026-06-27T13:30:00Z',
       },
     }),
     expect: [

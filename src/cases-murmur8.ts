@@ -17,7 +17,9 @@
 
 import type { BenchCase } from './case.js';
 import type { MockMap } from './mock-engine.js';
-import { paginated, errorOnce } from './mock-engine.js';
+import { paginated, errorOnce, murmur8Mocks } from './mock-engine.js';
+import type { MockEvent, MockTask } from './murmur8-results.js';
+import { TASK_BOARD } from './task-board-fixture.js';
 import { calendarsListResult, createdEventEcho, createdTaskEcho, taskListsListResult, toolTurn } from './memory-history.js';
 
 const PERSONAL_ID = '2e9ee3a1-4864-467c-9147-2c2092915be1';
@@ -31,88 +33,28 @@ const SHOPPING_ID = '8fb60e48-04f4-4f14-bbb3-ca55eed87eb6';
 const CALENDAR_NAMES = ['Household', 'Personal', 'Connectwise'];
 const LIST_NAMES = ['groceries', 'Murmur8', 'Shopping'];
 
-// The fixture's calendars, shaped like a `list {type:'calendars'}` result row.
-const CALENDARS = [
-  { id: PERSONAL_ID, name: 'Personal' },
-  { id: HOUSEHOLD_ID, name: 'Household' },
-  { id: CONNECTWISE_ID, name: 'Connectwise' },
-];
-
-const TASK_LISTS = [
-  { id: GROCERIES_ID, name: 'groceries' },
-  { id: MURMUR8_ID, name: 'Murmur8' },
-  { id: SHOPPING_ID, name: 'Shopping' },
-];
-
-// Twelve task rows shaped like a `list {type:'tasks'}` result row, enough to
-// force pagination at a page size of five (3 pages: 5 + 5 + 2).
-const TASK_ROWS = Array.from({ length: 12 }, (_, i) => ({
-  id: `task-${String(i + 1).padStart(4, '0')}`,
-  title: `Task number ${i + 1}`,
-  status: 'NeedsAction',
-  priority: 0,
-  dueDate: null,
-  taskListId: MURMUR8_ID,
-  parentTaskId: null,
-  tags: [],
-  updatedAt: '2026-06-20T14:32:00Z',
-  descriptionSnippet: null,
-}));
-
-// A mock where `search` and `list {type:'tasks'}` return a single matching task,
+// A mock where `search` and `list {type:'tasks'}` surface a single matching task,
 // so an implied-completion request has an unambiguous target to mark done.
-function singleTaskMock(task: Record<string, unknown>): MockMap {
-  return {
-    search: () => ({ results: [task] }),
-    list: (args: any) => {
-      if (args.type === 'tasks') return { results: [task], nextCursor: null };
-      if (args.type === 'calendars') return { results: CALENDARS, nextCursor: null };
-      if (args.type === 'task_lists') return { results: TASK_LISTS, nextCursor: null };
-      return { results: [], nextCursor: null };
-    },
-  };
+function singleTaskMock(task: MockTask): MockMap {
+  return murmur8Mocks({ tasks: [task] });
 }
 
-// A mock where `search` returns TWO matching tasks — the honest move is to ask
-// which one, not to guess and act destructively.
-function twoTaskMock(
-  first: Record<string, unknown>,
-  second: Record<string, unknown>,
-): MockMap {
-  return {
-    search: () => ({ results: [first, second] }),
-    list: (args: any) => {
-      if (args.type === 'tasks') return { results: [first, second], nextCursor: null };
-      return { results: [], nextCursor: null };
-    },
-  };
+// A mock where `search` and `list {type:'tasks'}` surface TWO matching tasks — the
+// honest move is to ask which one, not to guess and act destructively.
+function twoTaskMock(first: MockTask, second: MockTask): MockMap {
+  return murmur8Mocks({ tasks: [first, second] });
 }
 
 // A mock where listing/searching the named calendar surfaces ONE seeded event,
 // so a follow-up ("move that", "cancel it") has a real id to update/delete.
-function eventLookupMock(opts: { calendarId: string; event: Record<string, unknown> }): MockMap {
-  return {
-    search: () => ({ results: [opts.event] }),
-    list: (args: any) => {
-      if (args.type === 'calendars') return { results: CALENDARS, nextCursor: null };
-      if (args.type === 'calendar_events') {
-        const match = !args.calendarId || args.calendarId === opts.calendarId;
-        return { results: match ? [opts.event] : [], nextCursor: null };
-      }
-      return { results: [], nextCursor: null };
-    },
-  };
+function eventLookupMock(opts: { event: MockEvent }): MockMap {
+  return murmur8Mocks({ events: [opts.event] });
 }
 
-// A mock where every search comes back empty — there is no matching task to act
-// on, so the honest move is to say so, not to invent a completion.
-const emptySearchMock: MockMap = {
-  search: () => ({ results: [] }),
-  list: (args: any) => {
-    if (args.type === 'tasks') return { results: [], nextCursor: null };
-    return { results: [], nextCursor: null };
-  },
-};
+// A mock where every search and task or event lookup comes back empty — there is
+// no matching entity to act on, so the honest move is to say so, not to invent a
+// completion. Calendars and task lists still list as the fixture's.
+const emptySearchMock: MockMap = murmur8Mocks();
 
 // Build a production-shaped <screen-context> block carrying a single <active-item>
 // (the focused entity, WITH its real id) plus its containing route/container. The
@@ -143,16 +85,8 @@ function screenContextWithActiveItem(opts: {
 // A mock that always surfaces one named task via search/list, so a NAMED-reference
 // guardrail case has a real id to resolve to when it (correctly) looks up rather
 // than blindly reusing the active-item.
-function namedTaskMock(task: Record<string, unknown>): MockMap {
-  return {
-    search: () => ({ results: [task] }),
-    list: (args: any) => {
-      if (args.type === 'tasks') return { results: [task], nextCursor: null };
-      if (args.type === 'task_lists') return { results: TASK_LISTS, nextCursor: null };
-      if (args.type === 'calendars') return { results: CALENDARS, nextCursor: null };
-      return { results: [], nextCursor: null };
-    },
-  };
+function namedTaskMock(task: MockTask): MockMap {
+  return murmur8Mocks({ tasks: [task] });
 }
 
 export const MURMUR8_CASES: BenchCase[] = [
@@ -395,15 +329,12 @@ export const MURMUR8_CASES: BenchCase[] = [
     }),
     sms: 'Actually, move that to 4pm.',
     mocks: eventLookupMock({
-      calendarId: PERSONAL_ID,
       event: {
         id: 'mock-evt-dentist',
         title: 'Dentist',
-        calendarIds: [PERSONAL_ID],
-        occurrenceStart: '2026-06-26T19:00:00Z',
-        occurrenceEnd: '2026-06-26T20:00:00Z',
-        isAllDay: false,
-        isRecurring: false,
+        calendarId: PERSONAL_ID,
+        start: '2026-06-26T19:00:00Z',
+        end: '2026-06-26T20:00:00Z',
       },
     }),
     expect: [
@@ -483,7 +414,8 @@ export const MURMUR8_CASES: BenchCase[] = [
     id: 'm8-page-01',
     capability: 'pagination',
     sms: 'What tasks do I have?',
-    mocks: { list: paginated(TASK_ROWS, 5) },
+    // Forty active tasks: the production default page of 20 ends with a nextCursor to follow.
+    mocks: { list: paginated(TASK_BOARD) },
     expect: [
       { kind: 'toolCalled', tool: 'list' },
       { kind: 'pagedAllResults', tool: 'list' },

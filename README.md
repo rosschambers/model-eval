@@ -66,13 +66,52 @@ correction applies to every profile. In particular, `voice` now places its clock
 exchange on the second request, without duplicating it. `voice` is still a profile-only placeholder,
 not a verified portal execution path.
 
-This is **renderer fidelity, not mock payload schema fidelity**. Default create/update results
-still echo input fields with synthetic or supplied identifiers instead of complete production entity responses;
-`get` returns only `id` and `found`; most lists and searches are empty. Revisions, realistic cursor
-values and full local-time fields are not consistently modelled. Structured mock errors are tool
-payloads, not simulated n8n node failures or network exceptions. The portal date helper still uses
-the harness's JavaScript implementation, not the production C# validation rules. No payloads or
-case assertions were changed by the transport fix.
+## Payload Fidelity
+
+The murmur8 **read** tools answer in the deployed murmur8 shapes (murmur8 `50cd9628`), built in
+`src/murmur8-results.ts` and served by `src/mock-engine.ts` (`listMock`, `searchMock`,
+`murmur8Mocks`, `paginated`):
+
+- `search` returns SearchTool's `{TotalCount, Items:[{EntityType, EntityId, Title, Subtitle,
+  ParentName, Score}]}`, PascalCase with nulls written. The Subtitle is "Parent · local date"
+  (plus the local time for timed events and task due instants). Tasks of every status and calendar
+  events are searchable; reminders are not, as in production. A `types` filter is honoured.
+- `list` rows are the lean production rows with null members omitted and `nextCursor` always
+  written: calendars and task lists `{id, name}` sorted by name; tasks `{id, title, status,
+  dueDate?, priority, localDueDate?, localTimeZone?}`; reminders `{id, revision, title, remindAt,
+  localRemindAt, localTimeZone}`; calendar events `{id, title, occurrenceStart, occurrenceEnd,
+  isAllDay, localStart, localEnd, localTimeZone}` inside `{results, nextCursor: null, truncated}`.
+  Local fields come from the pinned clock's timezone (America/Detroit).
+- Paging follows ListTool and CursorPaginator: `pageSize` defaults to 20 and is clamped to 1..100,
+  tasks default to active only (`status` filters one status; `All`/`Completed`/`Cancelled` without a
+  `taskListId` get the production error), reminders default to Pending (history statuses need a
+  created range), rows sort newest-updated first, cursors are base64 of `{"s":sortValue,"i":id}`, an
+  unreadable cursor restarts at page 1, and `nextCursor` is `null` once exhausted. Calendar events
+  honour the default now..now+7 days window, an explicit local or UTC `start`/`end`, and `calendarId`.
+- Payload text is written the way System.Text.Json's default encoder writes it (`·` is `\u00B7`,
+  an apostrophe `\u0027`), which the Hugo MCP path sends raw; the portal renderer re-reads it as
+  database JSON, as production does.
+
+Remaining payload gaps:
+
+- Mutations are not production-shaped. `create`/`update` echo input fields with synthetic or
+  supplied identifiers, `delete` returns `{deleted:true}`, and none of them requires the `revision`
+  production demands on update and delete of tasks, events, calendars, task lists and reminders
+  (production rejects a call without it with "Missing required parameter: 'revision'").
+- `get` returns only `id` and `found`, not the detail views (with `revision` and local fields).
+- `search` does not match the query text (pg_trgm `word_similarity`): every seeded task and event
+  is returned for any query of two or more characters.
+- `list` ignores the created/updated date filters, `createdBy`/`updatedBy`/`parentTaskId`, and every
+  type other than tasks, task lists, calendars, calendar events and reminders (they list empty).
+  Recurring events are seeded as already-expanded occurrences.
+- Structured mock errors are tool payloads, not simulated n8n node failures or network exceptions.
+  Business-rule errors match production (`{"error": "..."}`), but a tool exception (a missing
+  required argument, an unparseable `start`) is sent as `{"error": "<MCP message>"}` JSON where
+  production sends the bare MCP message text, and the portal's own exception text is not modelled.
+- The portal date helper still uses the harness's JavaScript implementation, not the production C#
+  validation rules.
+- `probe-page-08` seeds twelve open tasks, which fit one production page, so it no longer requires a
+  cursor follow; `pagedAllResults` checks only that one `nextCursor` was followed.
 
 Portal argument-key normalization and invalid or non-object JSON argument handling remain fidelity
 gaps. Production normalizes argument keys against tool schemas and catches tool-execution errors;

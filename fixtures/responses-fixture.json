@@ -1,70 +1,26 @@
 {
   "calendars": [
-    {
-      "id": "2e9ee3a1-4864-467c-9147-2c2092915be1",
-      "name": "Personal",
-      "color": "#4285F4",
-      "isDefault": true,
-      "ownerId": "owner-0001",
-      "eventCount": 0,
-      "memberCount": 0,
-      "descriptionSnippet": null
-    },
-    {
-      "id": "53c6b1e2-e1fa-4cae-94ed-32a1c016e2d7",
-      "name": "Household",
-      "color": "#34A853",
-      "isDefault": false,
-      "ownerId": "owner-0001",
-      "eventCount": 2,
-      "memberCount": 0,
-      "descriptionSnippet": null
-    },
-    {
-      "id": "9fa91c0a-1111-2222-3333-444455556666",
-      "name": "Connectwise",
-      "color": "#D94A4A",
-      "isDefault": false,
-      "ownerId": "owner-0001",
-      "eventCount": 3,
-      "memberCount": 0,
-      "descriptionSnippet": null
-    }
+    { "id": "9fa91c0a-1111-2222-3333-444455556666", "name": "Connectwise" },
+    { "id": "53c6b1e2-e1fa-4cae-94ed-32a1c016e2d7", "name": "Household" },
+    { "id": "2e9ee3a1-4864-467c-9147-2c2092915be1", "name": "Personal" }
   ],
   "taskLists": [
-    {
-      "id": "7101b4ff-d49d-4117-a055-d3a67e9971d9",
-      "name": "groceries",
-      "ownerId": "owner-0001",
-      "taskCount": 8
-    },
-    {
-      "id": "87697694-3927-462a-b15b-21e2008c0597",
-      "name": "Murmur8",
-      "ownerId": "owner-0001",
-      "taskCount": 12
-    },
-    {
-      "id": "8fb60e48-04f4-4f14-bbb3-ca55eed87eb6",
-      "name": "Shopping",
-      "ownerId": "owner-0001",
-      "taskCount": 3
-    }
+    { "id": "7101b4ff-d49d-4117-a055-d3a67e9971d9", "name": "groceries" },
+    { "id": "87697694-3927-462a-b15b-21e2008c0597", "name": "Murmur8" },
+    { "id": "8fb60e48-04f4-4f14-bbb3-ca55eed87eb6", "name": "Shopping" }
   ],
   "sampleTaskRow": {
     "id": "task-0001",
     "title": "Buy milk",
     "status": "NeedsAction",
+    "dueDate": "2026-06-29T00:00:00Z",
     "priority": 0,
-    "dueDate": null,
-    "taskListId": "7101b4ff-d49d-4117-a055-d3a67e9971d9",
-    "parentTaskId": null,
-    "tags": [],
-    "updatedAt": "2026-06-20T14:32:00Z",
-    "descriptionSnippet": null
+    "localDueDate": "Monday 2026-06-29",
+    "localTimeZone": "America/Detroit"
   },
   "sampleTask": {
     "id": "task-0001",
+    "revision": 3,
     "title": "Buy milk",
     "description": "Whole milk, two cartons",
     "status": "NeedsAction",
@@ -78,8 +34,8 @@
     "userId": "owner-0001",
     "assignedToId": null,
     "parentTaskId": null,
-    "createdAt": "2026-06-18T09:15:00Z",
-    "updatedAt": "2026-06-20T14:32:00Z",
+    "createdAt": "2026-06-18T09:15:00.51249Z",
+    "updatedAt": "2026-06-20T14:32:00.418263Z",
     "updatedByUserId": "owner-0001"
   },
   "sampleEventRow": {
@@ -88,23 +44,16 @@
     "occurrenceStart": "2026-06-26T13:00:00Z",
     "occurrenceEnd": "2026-06-26T13:30:00Z",
     "isAllDay": false,
-    "isRecurring": true,
-    "recurrenceRule": "FREQ=WEEKLY;BYDAY=MO,WE,FR",
-    "location": "Conference Room B",
-    "calendarIds": ["9fa91c0a-1111-2222-3333-444455556666"],
-    "attendeeCount": 4,
-    "userResponseStatus": "accepted",
-    "descriptionSnippet": null
+    "localStart": "2026-06-26T09:00:00",
+    "localEnd": "2026-06-26T09:30:00",
+    "localTimeZone": "America/Detroit"
   },
   "sampleReminderRow": {
     "id": "reminder-0001",
+    "revision": 0,
     "title": "Call the bank",
-    "note": "Ask about the wire transfer",
     "remindAt": "2026-06-26T21:00:00Z",
-    "status": "Scheduled",
-    "linkedTaskId": null,
-    "firedAt": null,
-    "dismissedAt": null,
-    "createdAt": "2026-06-25T17:00:00Z"
+    "localRemindAt": "2026-06-26T17:00:00",
+    "localTimeZone": "America/Detroit"
   }
 }

@@ -12,38 +12,18 @@
 
 import type { BenchCase } from './case.js';
 import type { MockMap } from './mock-engine.js';
-import { paginated, errorOnce } from './mock-engine.js';
+import { paginated, errorOnce, murmur8Mocks } from './mock-engine.js';
+import { TASK_BOARD } from './task-board-fixture.js';
 
 const PERSONAL_ID = '2e9ee3a1-4864-467c-9147-2c2092915be1';
 const GROCERIES_ID = '7101b4ff-d49d-4117-a055-d3a67e9971d9';
-const MURMUR8_ID = '87697694-3927-462a-b15b-21e2008c0597';
 
 const CALENDAR_NAMES = ['Household', 'Personal', 'Connectwise'];
 
-// Twelve task rows shaped like a `list {type:'tasks'}` result row, enough to
-// force pagination at a page size of five (3 pages: 5 + 5 + 2).
-const TASK_ROWS = Array.from({ length: 12 }, (_, i) => ({
-  id: `task-${String(i + 1).padStart(4, '0')}`,
-  title: `Task number ${i + 1}`,
-  status: 'NeedsAction',
-  priority: 0,
-  dueDate: null,
-  taskListId: MURMUR8_ID,
-  parentTaskId: null,
-  tags: [],
-  updatedAt: '2026-06-20T14:32:00Z',
-  descriptionSnippet: null,
-}));
-
-// A mock where every search comes back empty — there is no matching task to act
-// on, so the honest move is to say so, not to invent a completion.
-const emptySearchMock: MockMap = {
-  search: () => ({ results: [] }),
-  list: (args: any) => {
-    if (args.type === 'tasks') return { results: [], nextCursor: null };
-    return { results: [], nextCursor: null };
-  },
-};
+// A mock where every search and task lookup comes back empty — there is no
+// matching task to act on, so the honest move is to say so, not to invent a
+// completion. Calendars and task lists still list as the fixture's.
+const emptySearchMock: MockMap = murmur8Mocks();
 
 export const FIDELITY_CASES: BenchCase[] = [
   // ----------------------------------------------------------------------------
@@ -90,7 +70,8 @@ export const FIDELITY_CASES: BenchCase[] = [
     id: 'page-01',
     capability: 'pagination',
     sms: 'what tasks do I have?',
-    mocks: { list: paginated(TASK_ROWS, 5) },
+    // Forty active tasks: the production default page of 20 ends with a nextCursor to follow.
+    mocks: { list: paginated(TASK_BOARD) },
     expect: [
       { kind: 'toolCalled', tool: 'list' },
       { kind: 'pagedAllResults', tool: 'list' },

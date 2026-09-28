@@ -13,6 +13,7 @@
 
 import type { BenchCase } from './case.js';
 import { paginated } from './mock-engine.js';
+import type { MockTask } from './murmur8-results.js';
 import { createdReminderEcho, createdTaskEcho, taskListsListResult, toolTurn } from './memory-history.js';
 import {
   CALENDAR_NAMES,
@@ -26,18 +27,15 @@ import {
   twoTaskMock,
 } from './cases.js';
 
-// Twelve open errands, enough to force three pages at a page size of five.
-const ERRAND_ROWS = Array.from({ length: 12 }, (_, index) => ({
+// Twelve open errands in the production list-row shape. Under the production
+// default page of 20 they arrive in one page with `nextCursor: null`, so this case
+// no longer forces a cursor follow (its rubric names twelve errands; enlarging the
+// fixture would contradict it — left for the owner to decide).
+const ERRAND_ROWS: MockTask[] = Array.from({ length: 12 }, (_, index) => ({
   id: `task-errand-${String(index + 1).padStart(2, '0')}`,
   title: `Errand ${index + 1}`,
-  status: 'NeedsAction',
-  priority: 0,
-  dueDate: null,
   taskListId: MURMUR8_ID,
-  parentTaskId: null,
-  tags: [],
-  updatedAt: '2026-06-20T14:32:00Z',
-  descriptionSnippet: null,
+  updatedAt: `2026-06-20T14:${String(59 - index).padStart(2, '0')}:00.418263Z`,
 }));
 
 export const PROBE_CASES: BenchCase[] = [
@@ -141,7 +139,7 @@ export const PROBE_CASES: BenchCase[] = [
     id: 'probe-page-08',
     capability: 'pagination',
     sms: "give me the full rundown of every open task I've got",
-    mocks: { list: paginated(ERRAND_ROWS, 5) },
+    mocks: { list: paginated(ERRAND_ROWS) },
     expect: [
       { kind: 'toolCalled', tool: 'list' },
       { kind: 'pagedAllResults', tool: 'list' },

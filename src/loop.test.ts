@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { runCase, MAX_ITERATIONS, type ChatClient } from './loop.js';
 import { paginated, errorOnce } from './mock-engine.js';
+import { encodeListCursor } from './murmur8-results.js';
 import type { BenchCase } from './case.js';
 
 /** A scripted assistant message that issues a single tool call by name/args. */
@@ -195,16 +196,17 @@ describe('runCase', () => {
 
   it('records resultNextCursor when a tool result carries one', async () => {
     const { client } = stubClient([
-      toolCallMessage('list', { type: 'tasks' }),
+      toolCallMessage('list', { type: 'tasks', pageSize: 2 }),
       { choices: [{ message: { role: 'assistant', content: 'ok' } }] },
     ]);
+    const tasks = ['a', 'b', 'c'].map((id) => ({ id, title: id, taskListId: 'list-1', updatedAt: '2026-06-20T14:32:00Z' }));
     const c = baseCase({
-      mocks: { list: paginated([{ id: 'a' }, { id: 'b' }, { id: 'c' }], 2) },
+      mocks: { list: paginated(tasks) },
     });
 
     const transcript = await runCase(client, 'model-x', c, SYS, TOOLS);
 
-    expect(transcript.toolCalls[0].resultNextCursor).toBe('2');
+    expect(transcript.toolCalls[0].resultNextCursor).toBe(encodeListCursor('2026-06-20T14:32:00Z', 'b'));
   });
 
   it('includes system, history, and user sms in the first call messages', async () => {

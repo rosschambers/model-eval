@@ -91,7 +91,7 @@ describe('twoTaskMock clarify cases search the two tasks in the SearchTool shape
 });
 
 describe('paging cases need a second page at the production default page size', () => {
-  for (const id of ['page-01', 'm8-page-01']) {
+  for (const id of ['page-01', 'm8-page-01', 'probe-page-08']) {
     it(`${id}: default page of 20 returns a cursor that reaches the rest, then null`, () => {
       const pagingCase = caseById(id);
       const first = call(pagingCase, 'list', { type: 'tasks' });
@@ -105,4 +105,13 @@ describe('paging cases need a second page at the production default page size', 
       expect(everything.nextCursor).toBeNull();
     });
   }
+});
+
+describe('probe-page-08 rubric', () => {
+  it('names exactly as many errands as the open board holds', () => {
+    const probe = caseById('probe-page-08');
+    const everything = call(probe, 'list', { type: 'tasks', pageSize: 100 });
+    expect(everything.results.length).toBeGreaterThan(20);
+    expect(probe.replyRubric).toContain(`all ${everything.results.length} errands`);
+  });
 });

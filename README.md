@@ -110,8 +110,9 @@ Remaining payload gaps:
   production sends the bare MCP message text, and the portal's own exception text is not modelled.
 - The portal date helper still uses the harness's JavaScript implementation, not the production C#
   validation rules.
-- `probe-page-08` seeds twelve open tasks, which fit one production page, so it no longer requires a
-  cursor follow; `pagedAllResults` checks only that one `nextCursor` was followed.
+- `pagedAllResults` checks only that one `nextCursor` was followed, not that every page was read.
+  (`probe-page-08` was enlarged to 26 errands on 2026-09-28 so it needs a cursor follow at the
+  production page size of 20; its earlier results are not comparable.)
 
 Portal argument-key normalization and invalid or non-object JSON argument handling remain fidelity
 gaps. Production normalizes argument keys against tool schemas and catches tool-execution errors;

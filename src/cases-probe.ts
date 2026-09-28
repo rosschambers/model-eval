@@ -27,13 +27,41 @@ import {
   twoTaskMock,
 } from './cases.js';
 
-// Twelve open errands in the production list-row shape. Under the production
-// default page of 20 they arrive in one page with `nextCursor: null`, so this case
-// no longer forces a cursor follow (its rubric names twelve errands; enlarging the
-// fixture would contradict it — left for the owner to decide).
-const ERRAND_ROWS: MockTask[] = Array.from({ length: 12 }, (_, index) => ({
+// Twenty-six open errands in the production list-row shape: more than the production default page
+// of 20, so answering "every open task" needs one `nextCursor` follow (the owner approved enlarging
+// the fixture and restating the rubric count, 2026-09-28). Titles are invented and held out.
+// Written as { title } entries so crucible's eval fingerprint (which reads `title:` values) holds them out.
+const ERRANDS: { title: string }[] = [
+  { title: 'Drop off library books' },
+  { title: 'Pick up prescription refill' },
+  { title: 'Return the rental skis' },
+  { title: 'Schedule car inspection' },
+  { title: 'Mail passport renewal form' },
+  { title: 'Get keys copied at hardware store' },
+  { title: 'Drop coat at tailor for hemming' },
+  { title: 'Renew parking permit at city hall' },
+  { title: 'Pick up framed photos from print shop' },
+  { title: 'Swap propane tank for grill' },
+  { title: 'Recycle old batteries at depot' },
+  { title: 'Get watch battery replaced' },
+  { title: 'Buy stamps at post office' },
+  { title: 'Deposit check at credit union' },
+  { title: 'Take donation bags to thrift store' },
+  { title: 'Get bike tuned up at shop' },
+  { title: 'Order replacement vacuum filter' },
+  { title: 'Buy potting soil for balcony planters' },
+  { title: 'Return defective phone charger' },
+  { title: 'Pick up cake for office party' },
+  { title: 'Drop off ballot at county clerk' },
+  { title: 'Get snow tires mounted' },
+  { title: 'Refill water softener salt' },
+  { title: 'Pick up glasses from optometrist' },
+  { title: 'Buy new wiper blades' },
+  { title: 'Drop off shoes for resoling' },
+];
+const ERRAND_ROWS: MockTask[] = ERRANDS.map(({ title }, index) => ({
   id: `task-errand-${String(index + 1).padStart(2, '0')}`,
-  title: `Errand ${index + 1}`,
+  title,
   taskListId: MURMUR8_ID,
   updatedAt: `2026-06-20T14:${String(59 - index).padStart(2, '0')}:00.418263Z`,
 }));
@@ -144,7 +172,7 @@ export const PROBE_CASES: BenchCase[] = [
       { kind: 'toolCalled', tool: 'list' },
       { kind: 'pagedAllResults', tool: 'list' },
     ],
-    replyRubric: 'Covers all twelve errands, paging through every result page.',
+    replyRubric: 'Covers all 26 errands, paging through every result page.',
   },
 
   // memory follow-ups: the earlier turn as production memory stored it (see cases.ts memory-followup)

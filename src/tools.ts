@@ -1,58 +1,15 @@
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
-import fixture from '../fixtures/tools-fixture.json' with { type: 'json' };
+import capturedTools from '../fixtures/hugo-n8n-tools.json' with { type: 'json' };
 
-interface FixtureTool {
-  name: string;
-  description: string;
-  inputSchema: Record<string, unknown>;
-}
-
-const CODE_TOOLS: FixtureTool[] = [
-  {
-    name: 'Convert_Time',
-    description:
-      'Convert a UTC ISO 8601 timestamp to the user\'s local time. Input is a JSON object with a "utcIso" property containing the timestamp string (e.g. "2026-04-20T17:00:00Z"). Returns a formatted local time string like "Mon Apr 20, 1:00 PM".',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        utcIso: {
-          type: 'string',
-          description: 'UTC ISO 8601 timestamp, e.g. 2026-04-20T17:00:00Z',
-        },
-      },
-      required: ['utcIso'],
-    },
-  },
-  {
-    name: 'Parse_Date_Time',
-    description:
-      'Convert a LOCAL wall-clock date-time into the exact forms the Murmur8 tools need, so you never do timezone math yourself. Input JSON: { "localDateTime": "2026-04-22T15:00:00" } -- the local time you worked out from the user request and the current time context (no Z, no offset). Optional "timeZone" overrides the user default. Returns JSON { "localNaive": "2026-04-22T15:00:00", "utc": "2026-04-22T19:00:00Z", "timeZone": "America/Detroit" }. Use localNaive + timeZone for calendar_event startTime/endTime. Use utc for reminder remindAt.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        localDateTime: {
-          type: 'string',
-          description:
-            'Local wall-clock date-time, no Z/offset, e.g. 2026-04-22T15:00:00',
-        },
-        timeZone: {
-          type: 'string',
-          description: 'Optional IANA timezone override',
-        },
-      },
-      required: ['localDateTime'],
-    },
-  },
-];
+// Hugo's tool array is the `tools` of a REAL n8n 2.14.2 request from the live `Domain: Murmur8`
+// workflow (captured 2026-09-28 at the model's HTTP boundary; fixtures/hugo-n8n-tools.json, verbatim).
+// n8n sends its two code tools first (Parse_Date_Time, Convert_Time), then the 18 Murmur8 MCP tools in
+// McpToolFactory order; every function carries `strict: false`, and every schema has been round-tripped
+// through Zod (`additionalProperties: false`, `$schema` last, keyword order changed). The code tools'
+// schemas are generated from the node's JSON example, so Parse_Date_Time exposes only `localDateTime`
+// and Convert_Time's `utcIso` has no description. Re-capture after any n8n or murmur8 tool change;
+// fixtures/tools-fixture.json (the murmur8 tools/list snapshot) still feeds the portal profile.
 
 export function getToolDefs(): ChatCompletionTool[] {
-  const fixtureTools = fixture.tools as FixtureTool[];
-  return [...fixtureTools, ...CODE_TOOLS].map((tool) => ({
-    type: 'function',
-    function: {
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.inputSchema,
-    },
-  }));
+  return structuredClone(capturedTools) as ChatCompletionTool[];
 }

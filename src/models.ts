@@ -132,6 +132,16 @@ export const MODELS: ModelConfig[] = [
     kind: 'local',
   },
   {
+    // crucible v7.2: corpus-v7.2 packed rows (production prompts, tools, wrappers and result shapes;
+    // final-completion loss). Served on 8090 with the live crucible9b chat template.
+    id: 'crucible-9b-v72',
+    label: 'crucible v7.2 Qwen3.5-9B corpus-v7.2 (frame:8090)',
+    baseURL: 'http://frame:8090/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'crucible-9b-v72-q5_k_m.gguf',
+    kind: 'local',
+  },
+  {
     // Production v7 on the B580 (promoted 2026-09-26), for same-run comparisons against v7.1.
     id: 'crucible-9b-v7-prod',
     label: 'crucible v7 production (frame:8289)',

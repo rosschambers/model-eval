@@ -90,6 +90,16 @@ describe('twoTaskMock clarify cases search the two tasks in the SearchTool shape
   }
 });
 
+describe('m8-list-02 can resolve the Shopping list through search, as production can', () => {
+  it('search {query:"Shopping", types:"TaskList"} returns the Shopping list id', () => {
+    const result = call(caseById('m8-list-02'), 'search', { query: 'Shopping', types: 'TaskList' });
+    expect(result.Items.map((item: { EntityType: string; EntityId: string; ParentName: string | null }) =>
+      [item.EntityType, item.EntityId, item.ParentName])).toEqual([
+      ['TaskList', '8fb60e48-04f4-4f14-bbb3-ca55eed87eb6', null],
+    ]);
+  });
+});
+
 describe('paging cases need a second page at the production default page size', () => {
   for (const id of ['page-01', 'm8-page-01', 'probe-page-08']) {
     it(`${id}: default page of 20 returns a cursor that reaches the rest, then null`, () => {

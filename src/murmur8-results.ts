@@ -4,7 +4,9 @@
 // - search: AI/Tools/SearchTool.cs serializes `new { TotalCount, Items = { EntityType, EntityId,
 //   Title, Subtitle, ParentName, Score } }` with DEFAULT options: PascalCase, nulls written.
 //   Search/SearchQueryHandler.cs BuildSubtitle writes "Parent · local date" (timed events and task
-//   due instants add the local time). Reminders are not searchable (Infrastructure SearchRepository).
+//   due instants add the local time). Infrastructure/Search/SearchRepository.cs searches tasks,
+//   calendar events, files, directories, albums, task lists, calendars, described photos and email;
+//   task lists, calendars and albums have a NULL parent. Reminders are not searchable.
 // - list: AI/Tools/AiListQueryExtensions.ToAiListResult writes `{ results, nextCursor }` with
 //   CamelCaseOmitNull: null row fields are omitted, the envelope nextCursor is always written.
 //   calendar_events (ListCalendarEventsForAiQueryHandler) writes `{ results, nextCursor: null,
@@ -66,6 +68,57 @@ export interface MockReminder {
   updatedAt?: string;
 }
 
+/** A directory (DirectoryItem) as a case seeds it. */
+export interface MockDirectory {
+  id: string;
+  name: string;
+  /** The containing directory; absent for a top-level directory. */
+  parentDirectoryId?: string;
+  /** UTC instant; the search date. */
+  createdAt: string;
+}
+
+/** A file (FileItem) as a case seeds it. */
+export interface MockFile {
+  id: string;
+  name: string;
+  /** The containing directory; absent for a file at the root. */
+  directoryId?: string;
+  /** UTC instant; the search date. */
+  createdAt: string;
+}
+
+/** A photo album as a case seeds it. */
+export interface MockAlbum {
+  id: string;
+  name: string;
+  /** UTC instant; the search date. */
+  createdAt: string;
+}
+
+/** A described photo (PhotoMetadata joined to its FileItem) as a case seeds it. */
+export interface MockPhoto {
+  /** The FileItem id. */
+  id: string;
+  /** The FileItem name (the search Title). */
+  name: string;
+  /** An album the photo is in; absent when it is in none. */
+  albumId?: string;
+  /** UTC instant the description was written (PhotoMetadata.DescribedAt); the search date. */
+  describedAt?: string;
+}
+
+/** An email message as a case seeds it. */
+export interface MockEmail {
+  id: string;
+  /** Absent for a message with no subject (searched as "(no subject)"). */
+  subject?: string;
+  /** The owning mailbox's (or shared mailbox's) address: the search parent. */
+  mailboxAddress: string;
+  /** UTC instant (EmailMessage.Date); the search date. */
+  date: string;
+}
+
 /** One SearchTool item, in the anonymous-object property order. */
 export interface SearchItem {
   EntityType: string;
@@ -96,6 +149,19 @@ export const MOCK_CALENDARS: readonly NamedRow[] = responses.calendars;
 
 /** The fixture's task lists as `list {type:'task_lists'}` rows. */
 export const MOCK_TASK_LISTS: readonly NamedRow[] = responses.taskLists;
+
+// CreatedAt of the fixture task lists and calendars: the search date (Subtitle) of a TaskList or
+// Calendar row. groceries, Murmur8, Shopping and Personal carry the CreatedAt of the same-named
+// production rows (serve murmur8-postgres, read 2026-10-01); Household has no production row and
+// production's Connectwise was created after the pinned clock, so those two are set before it.
+const FIXTURE_CONTAINER_CREATED_AT: Record<string, string> = {
+  '7101b4ff-d49d-4117-a055-d3a67e9971d9': '2026-03-22T00:01:12.050955Z',
+  '87697694-3927-462a-b15b-21e2008c0597': '2026-03-13T12:39:55.154043Z',
+  '8fb60e48-04f4-4f14-bbb3-ca55eed87eb6': '2026-03-19T03:24:27.8651Z',
+  '2e9ee3a1-4864-467c-9147-2c2092915be1': '2026-03-18T05:00:16.825945Z',
+  '53c6b1e2-e1fa-4cae-94ed-32a1c016e2d7': '2026-04-02T15:10:44.512337Z',
+  '9fa91c0a-1111-2222-3333-444455556666': '2026-05-11T13:02:09.118204Z',
+};
 
 // Some cases file a task under the Personal CALENDAR's id (and m8-active-02 names that container
 // "Personal"); search resolves the parent name from here, so name it the way those cases do.
@@ -277,6 +343,66 @@ export function calendarEventSearchItem(event: MockEvent, score: number = 1): Se
     EntityType: 'CalendarEvent', EntityId: event.id, Title: event.title,
     Subtitle: subtitle(parentName, date), ParentName: parentName, Score: score,
   };
+}
+
+/** Every other entity type's search date: the user's local date only ("MMM d, yyyy"). */
+function localSubtitleDate(utcIso: string | undefined): string | null {
+  if (utcIso === undefined) return null;
+  return subtitleDate(localParts(utcIso));
+}
+
+/** A search item whose parent and date production builds the same way for every non-timed type. */
+function plainSearchItem(
+  entityType: string, entityId: string, title: string, parentName: string | null, date: string | undefined, score: number,
+): SearchItem {
+  return {
+    EntityType: entityType, EntityId: entityId, Title: title,
+    Subtitle: subtitle(parentName, localSubtitleDate(date)), ParentName: parentName, Score: score,
+  };
+}
+
+function fixtureContainerCreatedAt(id: string): string {
+  return FIXTURE_CONTAINER_CREATED_AT[id] ?? DEFAULT_UPDATED_AT;
+}
+
+/** A search item for a task list: no parent (the SQL selects NULL), dated by its CreatedAt. */
+export function taskListSearchItem(taskList: NamedRow, score: number = 1): SearchItem {
+  return plainSearchItem('TaskList', taskList.id, taskList.name, null, fixtureContainerCreatedAt(taskList.id), score);
+}
+
+/** A search item for a calendar: no parent (the SQL selects NULL), dated by its CreatedAt. */
+export function calendarSearchItem(calendar: NamedRow, score: number = 1): SearchItem {
+  return plainSearchItem('Calendar', calendar.id, calendar.name, null, fixtureContainerCreatedAt(calendar.id), score);
+}
+
+/** A search item for a file: the parent is its directory (null at the root), the date its CreatedAt. */
+export function fileSearchItem(file: MockFile, directories: readonly MockDirectory[], score: number = 1): SearchItem {
+  const directory = directories.find((candidate) => candidate.id === file.directoryId);
+  return plainSearchItem('FileItem', file.id, file.name, directory?.name ?? null, file.createdAt, score);
+}
+
+/** A search item for a directory: the parent is its parent directory (null at the top), the date its CreatedAt. */
+export function directorySearchItem(
+  directory: MockDirectory, directories: readonly MockDirectory[], score: number = 1,
+): SearchItem {
+  const parent = directories.find((candidate) => candidate.id === directory.parentDirectoryId);
+  return plainSearchItem('DirectoryItem', directory.id, directory.name, parent?.name ?? null, directory.createdAt, score);
+}
+
+/** A search item for an album: no parent (the SQL selects NULL), dated by its CreatedAt. */
+export function albumSearchItem(album: MockAlbum, score: number = 1): SearchItem {
+  return plainSearchItem('Album', album.id, album.name, null, album.createdAt, score);
+}
+
+/** A search item for a described photo: the parent is an album it is in, the date its DescribedAt. */
+export function photoSearchItem(photo: MockPhoto, albums: readonly MockAlbum[], score: number = 1): SearchItem {
+  const album = albums.find((candidate) => candidate.id === photo.albumId);
+  return plainSearchItem('Photo', photo.id, photo.name, album?.name ?? null, photo.describedAt, score);
+}
+
+/** A search item for an email: the parent is its mailbox address, the title "(no subject)" when it has none. */
+export function emailSearchItem(email: MockEmail, score: number = 1): SearchItem {
+  return plainSearchItem('EmailMessage', email.id, email.subject ?? '(no subject)', email.mailboxAddress, email.date, score);
 }
 
 /** The SearchTool envelope around already-ranked items. */

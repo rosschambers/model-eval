@@ -10,31 +10,53 @@ import {
   DEFAULT_UPDATED_AT,
   MOCK_CALENDARS,
   MOCK_TASK_LISTS,
+  albumSearchItem,
   calendarEventListRow,
   calendarEventSearchItem,
+  calendarSearchItem,
   decodeListCursor,
+  directorySearchItem,
+  emailSearchItem,
   encodeListCursor,
+  fileSearchItem,
+  photoSearchItem,
   reminderListRow,
   searchResult,
   taskListRow,
+  taskListSearchItem,
   taskSearchItem,
   toSystemTextJson,
+  type MockAlbum,
+  type MockDirectory,
+  type MockEmail,
   type MockEvent,
+  type MockFile,
+  type MockPhoto,
   type MockReminder,
   type MockTask,
   type NamedRow,
   type SearchItem,
 } from './murmur8-results.js';
+import { WORD_SIMILARITY_THRESHOLD, wordSimilarity } from './trigram.js';
 
 const DEFAULT_TZ = USER_TIMEZONE;
 
 export type MockMap = Record<string, (args: any) => unknown>;
 
-/** What a case seeds behind the murmur8 read tools; calendars and task lists are the fixture's. */
+/**
+ * What a case seeds behind the murmur8 read tools; calendars and task lists are the fixture's.
+ * Directories, files, albums, photos and email are served by `search` only (`list` answers those
+ * types with an empty page).
+ */
 export interface Murmur8World {
   tasks?: readonly MockTask[];
   events?: readonly MockEvent[];
   reminders?: readonly MockReminder[];
+  directories?: readonly MockDirectory[];
+  files?: readonly MockFile[];
+  albums?: readonly MockAlbum[];
+  photos?: readonly MockPhoto[];
+  emails?: readonly MockEmail[];
 }
 
 // ListTool.cs
@@ -312,10 +334,29 @@ export function listMock(world: Murmur8World = {}): (args: any) => string {
 }
 
 /**
- * The `search` tool over a seeded world, in the SearchTool shape. Tasks (every status) and calendar
- * events are searchable; reminders are not. The query text is not matched (the seeded entities are
- * the case's matches), but a query under two characters returns nothing, the 25-row limit applies
- * before the `types` filter, and `types` is split on commas without trimming, as in production.
+ * Fixture containers (present in every world) whose name the query matches with pg_trgm
+ * word_similarity at the production threshold, scored by that similarity, as SearchRepository does.
+ */
+function matchingContainers(
+  rows: readonly NamedRow[], query: string, toItem: (row: NamedRow, score: number) => SearchItem,
+): SearchItem[] {
+  const items: SearchItem[] = [];
+  for (const row of rows) {
+    const score = wordSimilarity(query, row.name);
+    if (score >= WORD_SIMILARITY_THRESHOLD) items.push(toItem(row, score));
+  }
+  return items;
+}
+
+/**
+ * The `search` tool over a seeded world, in the SearchTool shape, covering every row kind
+ * SearchRepository searches (reminders are not searchable). Case-seeded entities (tasks of every
+ * status, calendar events, files, directories, albums, photos, email) are not matched against the
+ * query: they are the case's matches, at Score 1. The fixture task lists and calendars sit behind
+ * every case, so they are matched by name with word_similarity and scored by it. A query under two
+ * characters returns nothing, items are ranked by Score (ties in the SQL's union order), the 25-row
+ * limit applies before the `types` filter, and `types` is split on commas without trimming, as in
+ * production.
  */
 export function searchMock(world: Murmur8World = {}): (args: any) => string {
   return (args: any): string => {
@@ -324,9 +365,18 @@ export function searchMock(world: Murmur8World = {}): (args: any) => string {
     if (typeof query !== 'string' || query.trim() === '' || query.length < 2) {
       return toSystemTextJson(searchResult([]));
     }
+    const directories = world.directories ?? [];
+    const albums = world.albums ?? [];
     let items: SearchItem[] = [
       ...(world.tasks ?? []).map((task) => taskSearchItem(task)),
       ...(world.events ?? []).map((event) => calendarEventSearchItem(event)),
+      ...(world.files ?? []).map((file) => fileSearchItem(file, directories)),
+      ...directories.map((directory) => directorySearchItem(directory, directories)),
+      ...albums.map((album) => albumSearchItem(album)),
+      ...matchingContainers(MOCK_TASK_LISTS, query, taskListSearchItem),
+      ...matchingContainers(MOCK_CALENDARS, query, calendarSearchItem),
+      ...(world.photos ?? []).map((photo) => photoSearchItem(photo, albums)),
+      ...(world.emails ?? []).map((email) => emailSearchItem(email)),
     ];
     items = items
       .map((item, index) => ({ item, index }))

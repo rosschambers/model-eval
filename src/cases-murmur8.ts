@@ -51,9 +51,9 @@ function eventLookupMock(opts: { event: MockEvent }): MockMap {
   return murmur8Mocks({ events: [opts.event] });
 }
 
-// A mock where every search and task or event lookup comes back empty — there is
-// no matching entity to act on, so the honest move is to say so, not to invent a
-// completion. Calendars and task lists still list as the fixture's.
+// A mock where every task or event lookup comes back empty — there is no matching
+// entity to act on, so the honest move is to say so, not to invent a completion.
+// Calendars and task lists still list, and search by name, as the fixture's.
 const emptySearchMock: MockMap = murmur8Mocks();
 
 // Build a production-shaped <screen-context> block carrying a single <active-item>

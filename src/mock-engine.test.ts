@@ -263,6 +263,90 @@ describe('murmur8Mocks (a small seeded world behind list and search)', () => {
   });
 });
 
+// SearchRepository.SearchSql searches nine row kinds; SearchQueryHandler.BuildSubtitle writes
+// "Parent · local date" (date only for every type but timed events and task due instants).
+describe('search over every entity type production searches', () => {
+  const SHOPPING_ID = '8fb60e48-04f4-4f14-bbb3-ca55eed87eb6';
+
+  function search(args: Record<string, unknown>, mocks: MockMap = {}): any {
+    return JSON.parse(runTool('search', args, mocks));
+  }
+
+  it('finds the fixture Shopping task list by name, honouring types (the m8-list-02 lookup)', () => {
+    expect(runTool('search', { query: 'Shopping', types: 'TaskList' }, {})).toBe(
+      '{"TotalCount":1,"Items":[{"EntityType":"TaskList","EntityId":"' + SHOPPING_ID + '",'
+      + '"Title":"Shopping","Subtitle":"Mar 18, 2026","ParentName":null,"Score":1}]}',
+    );
+    expect(search({ query: 'Shopping' }).Items.map((item: { EntityId: string }) => item.EntityId)).toEqual([SHOPPING_ID]);
+    expect(search({ query: 'Shopping', types: 'TaskItem' })).toEqual({ TotalCount: 0, Items: [] });
+  });
+
+  it('matches fixture task lists and calendars with word_similarity at the 0.3 threshold, scored by it', () => {
+    expect(search({ query: 'grocery' }).Items).toEqual([{
+      EntityType: 'TaskList', EntityId: GROCERIES_ID, Title: 'groceries',
+      Subtitle: 'Mar 21, 2026', ParentName: null, Score: 0.75,
+    }]);
+    expect(runTool('search', { query: 'Shopping list' }, {})).toContain('"Score":0.64285713');
+    expect(search({ query: 'Household', types: 'Calendar' }).Items).toEqual([{
+      EntityType: 'Calendar', EntityId: HOUSEHOLD_ID, Title: 'Household',
+      Subtitle: 'Apr 2, 2026', ParentName: null, Score: 1,
+    }]);
+    expect(search({ query: 'Personal' }).Items).toEqual([{
+      EntityType: 'Calendar', EntityId: PERSONAL_ID, Title: 'Personal',
+      Subtitle: 'Mar 18, 2026', ParentName: null, Score: 1,
+    }]);
+    expect(search({ query: 'dentist' })).toEqual({ TotalCount: 0, Items: [] });
+    expect(search({ query: 'list' })).toEqual({ TotalCount: 0, Items: [] });
+  });
+
+  it('ranks case-seeded matches and matching containers by Score, then in the SQL union order', () => {
+    const world = murmur8Mocks({
+      tasks: [{ id: 'task-shoes', title: 'new running shoes', taskListId: SHOPPING_ID }],
+    });
+    const result = search({ query: 'shop' }, world);
+    expect(result.Items.map((item: { EntityType: string; Score: number }) => [item.EntityType, item.Score])).toEqual([
+      ['TaskItem', 1], ['TaskList', 0.8],
+    ]);
+    expect(search({ query: 'shop', types: 'TaskList,Calendar' }, world).TotalCount).toBe(1);
+  });
+
+  it('searches seeded files, directories, albums, photos and email with their production parent and date', () => {
+    const world = murmur8Mocks({
+      directories: [
+        { id: 'dir-documents', name: 'Documents', createdAt: '2026-05-02T12:00:00Z' },
+        { id: 'dir-taxes', name: 'Taxes', parentDirectoryId: 'dir-documents', createdAt: '2026-09-29T01:00:00Z' },
+      ],
+      files: [
+        { id: 'file-return', name: 'return-2025.pdf', directoryId: 'dir-taxes', createdAt: '2026-04-10T15:00:00Z' },
+        { id: 'file-root', name: 'notes.txt', createdAt: '2026-04-11T03:30:00Z' },
+      ],
+      albums: [{ id: 'album-beach', name: 'Beach', createdAt: '2026-06-01T02:00:00Z' }],
+      photos: [
+        { id: 'photo-sunset', name: 'IMG_0042.jpg', albumId: 'album-beach', describedAt: '2026-06-02T01:15:00Z' },
+        { id: 'photo-loose', name: 'IMG_0043.jpg' },
+      ],
+      emails: [
+        { id: 'mail-1', subject: 'Your receipt', mailboxAddress: 'ross@murmur8.example', date: '2026-06-25T02:00:00Z' },
+        { id: 'mail-2', mailboxAddress: 'ross@murmur8.example', date: '2026-06-24T16:00:00Z' },
+      ],
+    });
+    const items = search({ query: 'zzzz' }, world).Items;
+    expect(items).toEqual([
+      { EntityType: 'FileItem', EntityId: 'file-return', Title: 'return-2025.pdf', Subtitle: 'Taxes · Apr 10, 2026', ParentName: 'Taxes', Score: 1 },
+      { EntityType: 'FileItem', EntityId: 'file-root', Title: 'notes.txt', Subtitle: 'Apr 10, 2026', ParentName: null, Score: 1 },
+      { EntityType: 'DirectoryItem', EntityId: 'dir-documents', Title: 'Documents', Subtitle: 'May 2, 2026', ParentName: null, Score: 1 },
+      { EntityType: 'DirectoryItem', EntityId: 'dir-taxes', Title: 'Taxes', Subtitle: 'Documents · Sep 28, 2026', ParentName: 'Documents', Score: 1 },
+      { EntityType: 'Album', EntityId: 'album-beach', Title: 'Beach', Subtitle: 'May 31, 2026', ParentName: null, Score: 1 },
+      { EntityType: 'Photo', EntityId: 'photo-sunset', Title: 'IMG_0042.jpg', Subtitle: 'Beach · Jun 1, 2026', ParentName: 'Beach', Score: 1 },
+      { EntityType: 'Photo', EntityId: 'photo-loose', Title: 'IMG_0043.jpg', Subtitle: null, ParentName: null, Score: 1 },
+      { EntityType: 'EmailMessage', EntityId: 'mail-1', Title: 'Your receipt', Subtitle: 'ross@murmur8.example · Jun 24, 2026', ParentName: 'ross@murmur8.example', Score: 1 },
+      { EntityType: 'EmailMessage', EntityId: 'mail-2', Title: '(no subject)', Subtitle: 'ross@murmur8.example · Jun 24, 2026', ParentName: 'ross@murmur8.example', Score: 1 },
+    ]);
+    const filtered = search({ query: 'zzzz', types: 'Album,Photo' }, world);
+    expect(filtered.Items.map((item: { EntityId: string }) => item.EntityId)).toEqual(['album-beach', 'photo-sunset', 'photo-loose']);
+  });
+});
+
 describe('errorOnce', () => {
   it('errorOnce errors first then returns', () => {
     const fn = errorOnce({ code: 500, message: 'boom' }, { ok: true });

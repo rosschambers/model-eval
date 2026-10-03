@@ -169,6 +169,42 @@ export const MODELS: ModelConfig[] = [
     model: 'lfm2-v6-q5_k_m.gguf',
     kind: 'local',
   },
+  // B580 small-model bake-off (2026-10-03): base models zero-shot, each hand-served on the B580 with
+  // the production crucible9b flags (their own GGUF chat templates), one at a time, ports 8290-8293.
+  {
+    id: 'b580-qwen35-4b',
+    // bartowski's quant: unsloth's Qwen3.5-4B Q5_K_M decodes at 14 tokens per second on the B580 (this one at 67).
+    label: 'Qwen3.5-4B Q5_K_M (bartowski) base on the B580 (frame:8290)',
+    baseURL: 'http://frame:8290/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'Qwen_Qwen3.5-4B-Q5_K_M.gguf',
+    kind: 'local',
+  },
+  {
+    id: 'b580-lfm25-2.6b',
+    label: 'LFM2.5-2.6B Q8_0 base on the B580 (frame:8291)',
+    baseURL: 'http://frame:8291/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'LFM2.5-2.6B-Q8_0.gguf',
+    kind: 'local',
+  },
+  {
+    id: 'b580-ling3-tiny',
+    label: 'Ling-3.0-tiny Q4_K_M base on the B580 (frame:8292)',
+    baseURL: 'http://frame:8292/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'Ling-3.0-tiny-Q4_K_M.gguf',
+    kind: 'local',
+  },
+  {
+    // The production v7 GGUF and chat template, served the same way as the candidates for a same-session baseline.
+    id: 'b580-crucible-9b-v7',
+    label: 'crucible v7 Q5_K_M on the B580, bake-off baseline (frame:8293)',
+    baseURL: 'http://frame:8293/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'crucible-9b-v7-q5_k_m.gguf',
+    kind: 'local',
+  },
 ];
 
 export function getClient(m: ModelConfig): OpenAI {

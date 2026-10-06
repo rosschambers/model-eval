@@ -236,8 +236,9 @@ describe('slot trial runner', () => {
     expect(sample.outcome).toBe('completed');
     // First NON-EMPTY output delta is the reasoning delta landing at stream start.
     expect(Math.abs(sample.firstOutputDeltaMilliseconds! - sample.startedAtMilliseconds!)).toBeLessThan(50);
-    // Largest gap between consecutive output events is 320-120 = 200ms (timer jitter tolerance).
-    expect(sample.maximumOutputDeltaGapMilliseconds!).toBeGreaterThanOrEqual(200);
+    // Largest gap between consecutive output events is 320-120 = 200ms (timer jitter tolerance
+    // both ways — Node timers can fire a few ms early or late).
+    expect(sample.maximumOutputDeltaGapMilliseconds!).toBeGreaterThanOrEqual(190);
     expect(sample.maximumOutputDeltaGapMilliseconds!).toBeLessThan(260);
     // The reconstructed tool call must be handed to the mock engine whole and parse:
     expect(sample.validationErrors).toEqual([]);

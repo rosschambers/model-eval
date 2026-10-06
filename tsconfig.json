@@ -11,5 +11,5 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["src", "fixtures"]
+  "include": ["src", "scripts", "fixtures"]
 }

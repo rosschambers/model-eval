@@ -151,6 +151,41 @@ npm test              # 171 tests, ~1 second, no network
 npx tsc --noEmit      # type-check
 ```
 
+## Slot trial runner (scoped)
+
+`scripts/qwen-slot-trial.ts` is a bounded client-side harness for controlled
+two-slot trials against an already-running endpoint. It is not the general eval
+pipeline and not a model-serving framework: it never starts, stops, downloads or
+changes a model. The core (`src/slot-trial.ts`) is fully offline-tested with an
+injected transport, clock and memory sampler; the script wires the real ones
+(OpenAI SDK streaming with `maxRetries: 0`, `/props` preflight, `/proc/meminfo` +
+`vulkaninfo` memory floors).
+
+```bash
+npx tsx scripts/qwen-slot-trial.ts \
+  --profile P3 --base-url http://frame:8289/v1 \
+  --expected-slots 2 --expected-context-per-slot 24576 \
+  --maximum-concurrency 2 --maximum-requests 60 --duration-budget-ms 5400000 \
+  --floor-host-mib 2048 --floor-device-mib 1024 \
+  --requests-file <run>/requests.json --output results/qwen35-two-slot-trial/<run-id>
+```
+
+A preflight mismatch aborts before any completion request. Requests are attributed
+by explicit request identifier, never completion order; every request gets fresh
+mutable messages/tools/mocks (mock results are deterministic JSON in the requests
+file — no production tool credentials). Timings are delta-level, not exact per-token:
+one server event can carry multiple tokens. Content, tool-argument and reasoning
+channels are tracked separately. Cancellation is honored per request; a cancelled
+stream is recorded as `cancelled`, not validated. A memory-floor breach stops new
+submissions but never kills an in-flight request. Output layout: `environment.json`,
+`profile.json`, `requests.jsonl`, `responses.jsonl`, `memory-samples.jsonl`,
+`validation.json`, `summary.json`.
+
+Limitations: the mock engine executes reconstructed tool calls deterministically —
+it is not proof that production mutations work. Memory floors report observed
+minima from polling, not exact instantaneous peaks. The runner measures one endpoint
+at a time and cannot control what other consumers send to it during a run.
+
 ## License
 
 [MIT](LICENSE) — Copyright (c) 2026 Ross Chambers.

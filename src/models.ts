@@ -27,14 +27,6 @@ export const MODELS: ModelConfig[] = [
     kind: 'local',
   },
   {
-    id: 'gemma4',
-    label: 'gemma-4-12b-it (frame:8083)',
-    baseURL: 'http://frame:8083/v1',
-    apiKeyEnv: 'FRAME_API_KEY',
-    model: 'gemma-4-12b-it-uncensored-Q4_K_M.gguf',
-    kind: 'local',
-  },
-  {
     id: 'qwen3-30b-instruct',
     label: 'Qwen3-30B-A3B-Instruct-2507 (frame:8086)',
     baseURL: 'http://frame:8086/v1',

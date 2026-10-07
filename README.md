@@ -151,40 +151,171 @@ npm test              # 171 tests, ~1 second, no network
 npx tsc --noEmit      # type-check
 ```
 
-## Slot trial runner (scoped)
+## Slot Trial Runner
 
-`scripts/qwen-slot-trial.ts` is a bounded client-side harness for controlled
-two-slot trials against an already-running endpoint. It is not the general eval
-pipeline and not a model-serving framework: it never starts, stops, downloads or
-changes a model. The core (`src/slot-trial.ts`) is fully offline-tested with an
-injected transport, clock and memory sampler; the script wires the real ones
-(OpenAI SDK streaming with `maxRetries: 0`, `/props` preflight, `/proc/meminfo` +
-`vulkaninfo` memory floors).
+`scripts/qwen-slot-trial.ts` runs a bounded **single-turn** Task 3 slice against an
+already-running direct llama-server endpoint. It never changes services, loads a
+model, retries HTTP calls, uses cloud fallback, or executes production tools.
+`--profile` is an evidence label, not a generic evaluation profile selector.
+Node 22 and the installed project dependencies are required.
+
+### Offline Preparation
+
+Run from this checkout. This command reads source files only, makes no requests,
+and creates a new fixture directory:
 
 ```bash
-npx tsx scripts/qwen-slot-trial.ts \
-  --profile P3 --base-url http://frame:8289/v1 \
-  --expected-slots 2 --expected-context-per-slot 24576 \
-  --maximum-concurrency 2 --maximum-requests 60 --duration-budget-ms 5400000 \
-  --floor-host-mib 2048 --floor-device-mib 1024 \
-  --requests-file <run>/requests.json --output results/qwen35-two-slot-trial/<run-id>
+node --import tsx scripts/qwen-slot-trial.ts \
+  --prepare-p1-fixtures ../../projects/murmur8 \
+  --output results/qwen35-two-slot-trial/p1-fixtures
 ```
 
-A preflight mismatch aborts before any completion request. Requests are attributed
-by explicit request identifier, never completion order; every request gets fresh
-mutable messages/tools/mocks (mock results are deterministic JSON in the requests
-file — no production tool credentials). Timings are delta-level, not exact per-token:
-one server event can carry multiple tokens. Content, tool-argument and reasoning
-channels are tracked separately. Cancellation is honored per request; a cancelled
-stream is recorded as `cancelled`, not validated. A memory-floor breach stops new
-submissions but never kills an in-flight request. Output layout: `environment.json`,
-`profile.json`, `requests.jsonl`, `responses.jsonl`, `memory-samples.jsonl`,
-`validation.json`, `summary.json`.
+The eight synthetic requests alternate two title and two reminder-fill examples,
+then repeat the same bodies. The title prompt comes directly from the current
+shared `ai-prompts.json`. Reviewed title/fill renderers, reminder rules, tool schema
+and clock-formatting sources are fingerprinted in `src/slot-trial-fixtures.ts`;
+source drift refuses preparation rather than silently producing stale fixtures.
+Review the fixture before updating fingerprints. `sources.json` records provenance.
+No private task data or credentials are read. The fixed clock is synthetic.
 
-Limitations: the mock engine executes reconstructed tool calls deterministically —
-it is not proof that production mutations work. Memory floors report observed
-minima from polling, not exact instantaneous peaks. The runner measures one endpoint
-at a time and cannot control what other consumers send to it during a run.
+Initial requests use `cacheState: "unverified"`; repeats intend warm prefixes.
+Labels are not evidence of actual cache residency: retain reported usage, and do
+not call a missing usage field a hit or a miss. A declared cold request with reported
+cache hits fails validation. This small set does not fill a two-gibibyte host cache.
+
+### Approved P1 Slice
+
+**Do not execute this command without the separate interruption, profile, floor
+and monitoring approval in the trial plan.** First have the operator activate and
+verify the prepared P1 artifact, its identities and flags; ensure other consumers
+are quiet. This example is eight requests with a two-minute total client budget,
+not the full qualification window and not authorization to change the running host.
+
+```bash
+node --import tsx scripts/qwen-slot-trial.ts \
+  --profile P1 --base-url http://frame:8289/v1 \
+  --expected-slots 1 --expected-context-per-slot 24576 \
+  --maximum-concurrency 1 --maximum-requests 8 --duration-budget-ms 120000 \
+  --floor-host-mib 2048 --floor-device-mib 1024 \
+  --memory-interval-ms 5000 --memory-sample-timeout-ms 5000 \
+  --host-memory-command "exec ssh -o BatchMode=yes -o ConnectTimeout=3 frame 'cat /proc/meminfo'" \
+  --device-budget-command "exec ssh -o BatchMode=yes -o ConnectTimeout=3 frame 'timeout 3s vulkaninfo'" \
+  --requests-file results/qwen35-two-slot-trial/p1-fixtures/requests.json \
+  --output "results/qwen35-two-slot-trial/P1-$(date -u +%Y%m%dT%H%M%SZ)"
+```
+
+Both memory commands are mandatory for non-loopback endpoints. Commands must query
+the serving host, not the client; the runner cannot prove that an arbitrary shell
+command targets the correct machine. Loopback defaults read local `/proc/meminfo`
+and text `vulkaninfo`; do not use that default for a tunnel or container forwarding
+to another host. Use `exec` for the command process and bounded remote probes.
+Host output may be `/proc/meminfo` or one decimal mebibyte value. Device output may
+be full text `vulkaninfo` or one explicitly measured decimal mebibyte value.
+The text parser requires exactly one Intel B580, checks its vendor, and sums only
+complete device-local budget-minus-usage readings. Unknown, malformed and zero
+required readings cannot pass a positive floor. The old speculative Vulkan JSON
+parser is not used.
+
+The preflight cross-checks pinned b10621 `/props` fields `total_slots` and
+`default_generation_settings.n_ctx` against every `/slots` record's `id`, `n_ctx`
+and idle state. Nested context is already per-slot and is never divided again.
+Missing fields, busy slots and mismatches stop before completions. Offline tests
+use sanitized pinned-shape fixtures, not a fresh capture of the running server.
+Binary, model, template, cache precision, service flags and load order still need
+the independent Task 2 evidence; unavailable properties are not inferred.
+
+### Request Contract
+
+The requests file is a JSON array. Each entry requires `requestIdentifier`,
+`workload` (`title`, `fill`, `portal`, or `isolation`), `cacheState` (`cold`, `warm`,
+or `unverified`), `messages`, `foreignMarkers`, and `maxOutputTokens`.
+Unknown fields are rejected. Optional fields:
+
+| Field | Meaning |
+|-------|---------|
+| `temperature`, `topP`, `seed`, `responseFormat` | Explicit request settings; sent as `temperature`, `top_p`, `seed`, `response_format` |
+| `tools` | OpenAI function definitions, never live tool bindings |
+| `mocks` | Tool-name to deterministic JSON result; instantiated independently per request |
+| `expectedToolCalls` | Exact ordered call list with object `arguments`; absent means no calls allowed |
+| `expectedJson` | Exact synthetic object required for fill validation; property order does not matter |
+| `expectedContent` | Optional exact trimmed text answer |
+| `ownMarker` | Must occur in actual response content, reasoning, or reconstructed tool arguments (wire text or decoded JSON); requests, golds, and mock results do not count |
+| `cancelAfterMilliseconds` | Independent timed cancellation, including before the first delta |
+| `cancelAfterDelta` | Optional additional cancellation after nonempty output deltas |
+
+Programmatic users supply `createMocks: () => MockMap`, constructing fresh state
+inside the factory. Nonempty legacy function-valued `mocks` maps are rejected;
+copying a map cannot isolate its closures. Generic evaluation contracts are unchanged.
+
+The core rejects invalid or excessive request lists instead of truncating them.
+Concurrency is one or two; the hard request limit is 10,000; duration is at most
+90 minutes, including preflight and monitoring. Output budgets are positive integers
+bounded by expected per-slot context (24,576 by default). These limits are ceilings,
+not recommended trial sizes. A monotonic deadline bounds preflight, HTTP setup and
+stream iteration. Memory is checked initially, after completions and periodically
+during requests; sampling is serialized and has its own timeout. Deadline or memory
+failure cancels this client's active transports and stops further submissions.
+Aborting a client does **not** prove the server has released its slot.
+
+A failed response or hard correctness error also stops admission immediately after
+sample validation, before output callbacks or further memory sampling. This includes
+malformed or incorrect tool calls, error mock results, missing markers, foreign
+markers, and invalid terminal output. The runner aborts any still-running neighbor
+through the run controller; that neighbor is recorded as `failed`, not as an
+intentional `cancelled` request. Pending requests remain `not_started`, with null
+timings, and the full requested population stays in the denominator. Already
+completed samples are retained. A clean intentional per-request cancellation does
+not stop admission or abort its neighbor, but it still leaves the qualification run
+incomplete. Foreign output or another detected hard violation is not excused by
+intentional cancellation. Expiring the duration budget always fails the run.
+
+Marker detection does not relax exact tool argument matching. For example, a `list`
+call containing its own task-list marker can pass attribution while still failing
+correctness: adding `status: "NeedsAction"` when active tasks were requested excludes
+`InProcess` tasks. The correct omission of `status` must remain in the gold.
+
+### Results And Limits
+
+Content, reasoning and tool-argument deltas are appended immediately to
+`deltas.jsonl`. Completed, failed, cancelled and not-started samples go to
+`responses.jsonl`, including full content/reasoning and reconstructed calls.
+Original serializable fixtures remain in `requests.jsonl`. Memory observations
+are appended to `memory-samples.jsonl`; `environment.json`, `profile.json`,
+`validation.json` and `summary.json` hold run metadata. Output directories must be
+new, preventing accidental overwrite. The summary starts unsuccessful; interruption
+leaves partial evidence rather than a successful result. Files are not power-loss
+durability guarantees.
+
+Only valid completed samples enter latency estimates; all outcomes remain in the
+summary denominator. Incomplete, cancelled, failed, preflight-aborted, safety-breached
+or over-budget runs exit nonzero. A successful HTTP response alone is insufficient:
+require the matching terminal finish reason, usable content, exact expected calls,
+object arguments, known tools, successful mock results, and no foreign markers.
+Titles are checked for the prompt's shape; their semantic usefulness still needs
+review. Fills must match the exact synthetic expected object. This is not a general
+JSON Schema validator. Production title/fill calls are nonstreaming; these fixtures
+deliberately stream for delta timing and use a fixed trial seed. Do not present that
+as unchanged production transport latency.
+
+Timings are per received delta, not exact per-token timestamps. Monitoring observes
+sampled memory, not instantaneous peaks, and adds overhead. Unknown usage remains
+unknown in raw samples; token throughput is based only on supplied counts.
+
+**Not implemented for Task 4:** paired arrival barriers, delayed overlap scheduling,
+server-tokenized near-limit capacity checks, verified cancellation slot release,
+controlled cold-cache setup, multi-turn tool continuations, portal schema/source
+qualification, consumer-contamination detection, or automated matched-baseline
+comparisons. The short title/fill set does not qualify portal behavior, full host
+cache capacity, decision quality/latency, device-error logs, or promotion. Decision
+probes and the remaining Task 2/3 operational evidence are separate prerequisites.
+
+Offline verification:
+
+```bash
+npm test -- src/slot-trial.test.ts src/slot-trial-safety.test.ts src/slot-trial-correctness.test.ts src/slot-trial-adapter.test.ts
+npm test
+node node_modules/typescript/bin/tsc --noEmit
+```
 
 ## License
 

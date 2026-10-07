@@ -6,10 +6,20 @@
 // that request's own start (the first event lands at 0, gap 0), so per-request
 // timings are exact regardless of when the runner launches the stream.
 
-import { describe, it, expect } from 'vitest';
-import { runSlotTrial } from './slot-trial.js';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
+import { runSlotTrial as runTrial, type SlotTrialOptions } from './slot-trial.js';
 import type { PreflightInfo, SlotTrialReport, SlotTrialSample, TrialRequestWirePayload, TrialStreamChunk, TrialTransport } from './slot-trial.js';
 import type { MockMap } from './mock-engine.js';
+
+beforeEach(() => vi.useFakeTimers());
+afterEach(() => vi.useRealTimers());
+
+async function runSlotTrial(options: SlotTrialOptions): Promise<SlotTrialReport> {
+  const pending = runTrial({ now: () => Date.now(), ...options });
+  void pending.catch(() => {});
+  await vi.runAllTimersAsync();
+  return pending;
+}
 
 // ---------------------------------------------------------------------------
 // Scripted transport helpers
@@ -151,7 +161,7 @@ describe('slot trial runner', () => {
         {
           requestIdentifier: 'fast-two',
           events: [
-            { atMs: 0, channel: 'content', text: 'quick' },
+            { atMs: 0, channel: 'content', text: 'Quick Title' },
             { atMs: 60, finishReason: 'stop', usage: { promptTokens: 100, cachedInputTokens: 0, outputTokens: 3 } },
           ],
         },
@@ -221,10 +231,11 @@ describe('slot trial runner', () => {
       requests: [
         {
           requestIdentifier: 'frag-one',
-          workload: 'fill',
+          workload: 'portal',
           cacheState: 'cold',
           messages: [],
-          mocks,
+          createMocks: () => mocks,
+          tools: [{ type: 'function', function: { name: 'list', parameters: { type: 'object' } } }],
           foreignMarkers: [],
           maxOutputTokens: 64,
           expectedToolCalls: [{ name: 'list', arguments: { type: 'tasks' } }],
@@ -238,8 +249,7 @@ describe('slot trial runner', () => {
     expect(Math.abs(sample.firstOutputDeltaMilliseconds! - sample.startedAtMilliseconds!)).toBeLessThan(50);
     // Largest gap between consecutive output events is 320-120 = 200ms (timer jitter tolerance
     // both ways — Node timers can fire a few ms early or late).
-    expect(sample.maximumOutputDeltaGapMilliseconds!).toBeGreaterThanOrEqual(190);
-    expect(sample.maximumOutputDeltaGapMilliseconds!).toBeLessThan(260);
+    expect(sample.maximumOutputDeltaGapMilliseconds).toBe(200);
     // The reconstructed tool call must be handed to the mock engine whole and parse:
     expect(sample.validationErrors).toEqual([]);
     expect(sample.reconstructedToolCalls).toMatchObject([{ name: 'list', arguments: { type: 'tasks' }, mockResult: { receivedType: 'tasks' } }]);
@@ -302,7 +312,7 @@ describe('slot trial runner', () => {
   it('records null token counts when the server supplies no usage block', async () => {
     const transport = makeTransportWithClock({
       preflight: { slots: 2, contextPerSlot: 24576, modelPath: 'x.gguf', attentionCacheType: 'f16', kvUnified: false },
-      requests: [{ requestIdentifier: 'no-usage', events: [{ atMs: 0, channel: 'content', text: 'ok' }, { atMs: 100, finishReason: 'stop' }] }],
+      requests: [{ requestIdentifier: 'no-usage', events: [{ atMs: 0, channel: 'content', text: 'Test Title' }, { atMs: 100, finishReason: 'stop' }] }],
     });
 
     const report = await runSlotTrial({
@@ -479,8 +489,8 @@ describe('slot trial runner', () => {
       maxRequests: 10,
       durationBudgetMs: 5_000,
       requests: [
-        { requestIdentifier: 'peer-a', workload: 'fill', cacheState: 'cold', messages: sharedMessages, mocks: sharedMocks, foreignMarkers: [], maxOutputTokens: 32 },
-        { requestIdentifier: 'peer-b', workload: 'fill', cacheState: 'cold', messages: sharedMessages, mocks: sharedMocks, foreignMarkers: [], maxOutputTokens: 32 },
+        { requestIdentifier: 'peer-a', workload: 'portal', cacheState: 'cold', messages: sharedMessages, createMocks: () => sharedMocks, tools: [{ type: 'function', function: { name: 'list' } }], expectedToolCalls: [{ name: 'list', arguments: { type: 'tasks' } }], foreignMarkers: [], maxOutputTokens: 32 },
+        { requestIdentifier: 'peer-b', workload: 'portal', cacheState: 'cold', messages: sharedMessages, createMocks: () => sharedMocks, tools: [{ type: 'function', function: { name: 'list' } }], expectedToolCalls: [{ name: 'list', arguments: { type: 'calendars' } }], foreignMarkers: [], maxOutputTokens: 32 },
       ],
     });
 
@@ -549,9 +559,9 @@ describe('slot trial runner', () => {
     const transport = makeTransportWithClock({
       preflight: { slots: 2, contextPerSlot: 24576, modelPath: 'x.gguf', attentionCacheType: 'f16', kvUnified: false },
       requests: [
-        { requestIdentifier: 's1', events: [{ atMs: 0, channel: 'content', text: 'a' }, { atMs: 100, finishReason: 'stop', usage: { outputTokens: 5 } }] },
-        { requestIdentifier: 's2', events: [{ atMs: 0, channel: 'content', text: 'b' }, { atMs: 300, finishReason: 'stop', usage: { outputTokens: 5 } }] },
-        { requestIdentifier: 's3', events: [{ atMs: 0, channel: 'content', text: 'c' }, { atMs: 200, finishReason: 'stop', usage: { outputTokens: 5 } }] },
+        { requestIdentifier: 's1', events: [{ atMs: 0, channel: 'content', text: 'First Title' }, { atMs: 100, finishReason: 'stop', usage: { outputTokens: 5 } }] },
+        { requestIdentifier: 's2', events: [{ atMs: 0, channel: 'content', text: 'Second Title' }, { atMs: 300, finishReason: 'stop', usage: { outputTokens: 5 } }] },
+        { requestIdentifier: 's3', events: [{ atMs: 0, channel: 'content', text: 'Third Title' }, { atMs: 200, finishReason: 'stop', usage: { outputTokens: 5 } }] },
       ],
     });
 
@@ -631,7 +641,7 @@ describe('slot trial runner', () => {
     });
 
     expect(report.durationBudgetExceeded).toBe(true);
-    expect(sampleById(report, 'slow-block').outcome).toBe('completed');
+    expect(sampleById(report, 'slow-block').outcome).toBe('failed');
     expect(sampleById(report, 'post-budget').outcome).toBe('not_started');
     expect(transport.streamWasStartedFor('post-budget')).toBe(false);
   }, 10_000);
@@ -641,7 +651,7 @@ describe('slot trial runner', () => {
     let readingIndex = 0;
     const transport = makeTransportWithClock({
       preflight: { slots: 2, contextPerSlot: 24576, modelPath: 'x.gguf', attentionCacheType: 'f16', kvUnified: false },
-      requests: [{ requestIdentifier: 'solo', events: [{ atMs: 0, channel: 'content', text: 'ok' }, { atMs: 150, finishReason: 'stop' }] }],
+      requests: [{ requestIdentifier: 'solo', events: [{ atMs: 0, channel: 'content', text: 'Test Title' }, { atMs: 150, finishReason: 'stop' }] }],
     });
 
     const report = await runSlotTrial({

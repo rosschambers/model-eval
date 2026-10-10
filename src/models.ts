@@ -197,6 +197,26 @@ export const MODELS: ModelConfig[] = [
     model: 'crucible-9b-v7-q5_k_m.gguf',
     kind: 'local',
   },
+  // Qwen3.5-4B MTP trial (docs/plans/2026-10-09-qwen35-4b-mtp-trial.md): the two measured arms are
+  // hand-served one at a time on the SAME production-shape endpoint (port 18289, production flags;
+  // MTP-n2 adds --spec-type draft-mtp --spec-draft-n-max 2), so both entries share one baseURL.
+  // Separate ids keep the registry.jsonl lines self-identifying per arm across the same window.
+  {
+    id: 'qwen35-mtp-base',
+    label: 'Qwen3.5-4B Q5_K_M (bartowski) MTP trial BASE arm on the B580 (frame:18289)',
+    baseURL: 'http://frame:18289/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'Qwen_Qwen3.5-4B-Q5_K_M-bartowski.gguf',
+    kind: 'local',
+  },
+  {
+    id: 'qwen35-mtp-n2',
+    label: 'Qwen3.5-4B Q5_K_M (bartowski) MTP trial MTP-n2 arm on the B580 (frame:18289)',
+    baseURL: 'http://frame:18289/v1',
+    apiKeyEnv: 'FRAME_API_KEY',
+    model: 'Qwen_Qwen3.5-4B-Q5_K_M-bartowski.gguf',
+    kind: 'local',
+  },
 ];
 
 export function getClient(m: ModelConfig): OpenAI {

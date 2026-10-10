@@ -33,6 +33,19 @@ describe('MODELS registry', () => {
     expect(haiku!.model).toBe('anthropic/claude-haiku-4.5');
   });
 
+  it('has MTP trial arm entries, one per arm, sharing the :18289 endpoint', () => {
+    const base = MODELS.find((m) => m.id === 'qwen35-mtp-base');
+    const mtp = MODELS.find((m) => m.id === 'qwen35-mtp-n2');
+    expect(base).toBeDefined();
+    expect(mtp).toBeDefined();
+    expect(base!.baseURL).toBe('http://frame:18289/v1');
+    expect(mtp!.baseURL).toBe('http://frame:18289/v1');
+    expect(base!.kind).toBe('local');
+    expect(mtp!.kind).toBe('local');
+    expect(base!.model).toBe('Qwen_Qwen3.5-4B-Q5_K_M-bartowski.gguf');
+    expect(mtp!.model).toBe('Qwen_Qwen3.5-4B-Q5_K_M-bartowski.gguf');
+  });
+
   it('has at least 3 entries with unique ids', () => {
     expect(MODELS.length).toBeGreaterThanOrEqual(3);
     const ids = MODELS.map((m) => m.id);

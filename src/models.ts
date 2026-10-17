@@ -51,11 +51,15 @@ export const MODELS: ModelConfig[] = [
     kind: 'local',
   },
   {
-    id: 'crucible-9b',
-    label: 'crucible tuned 9B v3.1 (frame:8289)',
+    // The production utility model, served as `drone` since 2026-10-17 (decision
+    // brain/decisions/2026-10-17-4b-drone-rename). Replaces the crucible-9b and crucible-9b-v7-prod
+    // arms, which pointed at this endpoint with models that were no longer loaded there; their
+    // baselines and registry.jsonl lines stay valid under their old ids.
+    id: 'drone',
+    label: 'drone — Qwen3.5-4B base (bartowski Q5_K_M) production on the B580 (frame:8289)',
     baseURL: 'http://frame:8289/v1',
     apiKeyEnv: 'FRAME_API_KEY',
-    model: 'crucible-9b-v31-q5_k_m.gguf',
+    model: 'drone',
     kind: 'local',
   },
   {
@@ -131,15 +135,6 @@ export const MODELS: ModelConfig[] = [
     baseURL: 'http://frame:8090/v1',
     apiKeyEnv: 'FRAME_API_KEY',
     model: 'crucible-9b-v72-q5_k_m.gguf',
-    kind: 'local',
-  },
-  {
-    // Production v7 on the B580 (promoted 2026-09-26), for same-run comparisons against v7.1.
-    id: 'crucible-9b-v7-prod',
-    label: 'crucible v7 production (frame:8289)',
-    baseURL: 'http://frame:8289/v1',
-    apiKeyEnv: 'FRAME_API_KEY',
-    model: 'crucible-9b-v7-q5_k_m.gguf',
     kind: 'local',
   },
   {
